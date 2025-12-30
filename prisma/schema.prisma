@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusLaporan {
+  MENUNGGU
+  DIVERIFIKASI
+  DITOLAK
+}
+
+model Laporan {
+  id               Int            @id @default(autoincrement())
+  namaPelapor      String
+  namaObjek        String
+  desa             String
+  kecamatan        String
+  jenisKerusakan   String
+  tingkatKerusakan String
+  latitude         Float
+  longitude        Float
+  fotoLokasi       String[]
+  keterangan       String?
+  status           StatusLaporan  @default(MENUNGGU)
+  createdAt        DateTime       @default(now())
+}
