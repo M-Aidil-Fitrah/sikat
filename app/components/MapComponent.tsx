@@ -8,6 +8,13 @@ import type { LatLngExpression } from 'leaflet';
 import { Droplets, Mountain, MapPin, Clock, AlertTriangle, FileText, User, CheckCircle } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 
+// Extend HTMLElement to include _leaflet_id
+declare global {
+  interface HTMLElement {
+    _leaflet_id?: number;
+  }
+}
+
 // Fix Leaflet default marker icon issue in Next.js (only on client-side)
 if (typeof window !== 'undefined') {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -304,14 +311,23 @@ function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
 export default function MapComponent({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [mapKey, setMapKey] = useState(0);
+  const [mapId] = useState(() => `map-${Math.random().toString(36).substr(2, 9)}`);
 
   useEffect(() => {
     setIsMounted(true);
-    // Force remount on component mount to prevent reuse issues
-    setMapKey(prev => prev + 1);
     
     return () => {
       setIsMounted(false);
+      // Cleanup any existing map containers
+      if (typeof window !== 'undefined') {
+        const containers = document.querySelectorAll('.leaflet-container');
+        containers.forEach(container => {
+          const leafletContainer = container as HTMLElement;
+          if (leafletContainer._leaflet_id) {
+            delete leafletContainer._leaflet_id;
+          }
+        });
+      }
     };
   }, []);
 
@@ -327,15 +343,16 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
   }
 
   return (
-    <MapContainer
-      center={[5.5483, 95.3238] as LatLngExpression}
-      zoom={10}
-      style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
-      className="z-0"
-      key={`map-${mapKey}`}
-      scrollWheelZoom={true}
-      zoomControl={true}
-    >
+    <div key={mapKey} className="w-full h-full">
+      <MapContainer
+        center={[5.5483, 95.3238] as LatLngExpression}
+        zoom={10}
+        style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
+        className="z-0"
+        id={mapId}
+        scrollWheelZoom={true}
+        zoomControl={true}
+      >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -416,6 +433,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
 
       <MapEvents selectedDisaster={selectedDisaster} onDisasterSelect={onDisasterSelect} />
     </MapContainer>
+    </div>
   );
 }
 

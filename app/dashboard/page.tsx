@@ -47,7 +47,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col">
+      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col h-screen">
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-11 h-11 bg-linear-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
@@ -60,7 +60,7 @@ export default function Dashboard() {
           </Link>
         </div>
         
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="p-4 space-y-1">
           <a href="#" className="flex items-center gap-3 px-4 py-3 text-red-600 bg-red-50 rounded-xl font-medium transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -85,31 +85,12 @@ export default function Dashboard() {
             </svg>
             Statistik
           </a>
-          
-          <div className="pt-4 mt-4 border-t border-gray-200">
-            <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Jenis Bencana</p>
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
-              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                <Droplets className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Banjir</div>
-                <div className="text-xs text-blue-600">{disasters.filter(d => d.type === 'Banjir').length} kejadian</div>
-              </div>
-            </a>
-            <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mt-2">
-              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white">
-                <Mountain className="w-5 h-5" />
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-sm">Longsor</div>
-                <div className="text-xs text-amber-600">{disasters.filter(d => d.type === 'Longsor').length} kejadian</div>
-              </div>
-            </a>
-          </div>
         </nav>
         
-        <div className="p-4 border-t border-gray-200">
+        {/* Spacer to push content up */}
+        <div className="flex-1"></div>
+        
+        <div className="p-4 border-t border-gray-200 mt-auto">
           <Link href="/" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl font-medium transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
