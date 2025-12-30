@@ -16,18 +16,13 @@ export enum ReportStatus {
   REJECTED = 'REJECTED',
 }
 
-export enum Severity {
-  low = 'low',
-  medium = 'medium',
-  high = 'high',
-}
-
 // Main Report interface (dari database)
 export interface Report {
   id: number;
   lat: number;
   lng: number;
   namaPelapor: string;
+  kontak: string;
   desaKecamatan: string;
   namaObjek: string;
   jenisKerusakan: string;
@@ -40,9 +35,6 @@ export interface Report {
   reviewedById?: number | null;
   reviewNote?: string | null;
   autoApproved: boolean;
-  type?: string | null;
-  severity?: Severity | null;
-  verified: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
   
@@ -59,13 +51,13 @@ export interface ReportFormInput {
   lat: number;
   lng: number;
   namaPelapor: string;
+  kontak: string;
   desaKecamatan: string;
   namaObjek: string;
   jenisKerusakan: string;
   tingkatKerusakan: TingkatKerusakan;
   keteranganKerusakan: string;
   fotoLokasi: string[];
-  type?: string;
 }
 
 // Response dari API

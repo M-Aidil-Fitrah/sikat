@@ -47,10 +47,6 @@ export async function GET(request: NextRequest) {
     const transformedReports = reports.map((report: ReportWithReviewer) => ({
       ...report,
       timestamp: getRelativeTime(report.submittedAt),
-      verified: report.status === ReportStatus.APPROVED,
-      // Map tingkatKerusakan ke severity untuk backward compatibility
-      type: report.type || mapJenisKerusakanToType(report.jenisKerusakan),
-      severity: report.severity || mapTingkatToSeverity(report.tingkatKerusakan),
     }));
 
     return NextResponse.json({
@@ -76,17 +72,17 @@ export async function POST(request: NextRequest) {
       lat,
       lng,
       namaPelapor,
+      kontak,
       desaKecamatan,
       namaObjek,
       jenisKerusakan,
       tingkatKerusakan,
       keteranganKerusakan,
       fotoLokasi = [],
-      type,
     } = body;
 
     // Validasi required fields
-    if (!lat || !lng || !namaPelapor || !desaKecamatan || !namaObjek || 
+    if (!lat || !lng || !namaPelapor || !kontak || !desaKecamatan || !namaObjek || 
         !jenisKerusakan || !tingkatKerusakan || !keteranganKerusakan) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
@@ -108,14 +104,13 @@ export async function POST(request: NextRequest) {
         lat: parseFloat(lat),
         lng: parseFloat(lng),
         namaPelapor,
+        kontak,
         desaKecamatan,
         namaObjek,
         jenisKerusakan,
         tingkatKerusakan,
         keteranganKerusakan,
         fotoLokasi,
-        type: type || mapJenisKerusakanToType(jenisKerusakan),
-        severity: mapTingkatToSeverity(tingkatKerusakan),
         status: ReportStatus.PENDING,
       },
     });
@@ -148,24 +143,5 @@ function getRelativeTime(date: Date): string {
     return `${diffInHours} jam lalu`;
   } else {
     return `${diffInDays} hari lalu`;
-  }
-}
-
-function mapJenisKerusakanToType(jenisKerusakan: string): string {
-  if (jenisKerusakan.toLowerCase().includes('banjir')) return 'Banjir';
-  if (jenisKerusakan.toLowerCase().includes('longsor')) return 'Longsor';
-  return 'Bencana';
-}
-
-function mapTingkatToSeverity(tingkat: string): 'low' | 'medium' | 'high' {
-  switch (tingkat) {
-    case 'Ringan':
-      return 'low';
-    case 'Sedang':
-      return 'medium';
-    case 'Berat':
-      return 'high';
-    default:
-      return 'medium';
   }
 }

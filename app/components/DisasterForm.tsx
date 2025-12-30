@@ -26,6 +26,7 @@ interface DisasterFormProps {
 
 interface FormData {
   namaPelapor: string;
+  kontak: string;
   desaKecamatan: string;
   namaObjek: string;
   jenisKerusakan: string;
@@ -62,6 +63,7 @@ const MapClickHandler = dynamic(
 export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   const [formData, setFormData] = useState<FormData>({
     namaPelapor: '',
+    kontak: '',
     desaKecamatan: '',
     namaObjek: '',
     jenisKerusakan: '',
@@ -381,14 +383,13 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
         lat: formData.lat,
         lng: formData.lng,
         namaPelapor: formData.namaPelapor,
+        kontak: formData.kontak,
         desaKecamatan: formData.desaKecamatan,
         namaObjek: formData.namaObjek,
         jenisKerusakan: formData.jenisKerusakan,
         tingkatKerusakan: formData.tingkatKerusakan,
         keteranganKerusakan: formData.keteranganKerusakan,
         fotoLokasi: uploadedPaths,
-        type: formData.jenisKerusakan.includes('Banjir') ? 'Banjir' : 
-              formData.jenisKerusakan.includes('Longsor') ? 'Longsor' : 'Lainnya',
       };
 
       const report = await createReport(reportData);
@@ -682,6 +683,27 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   placeholder="Nama lengkap"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nomor Kontak (WhatsApp) *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.kontak}
+                  onChange={(e) => {
+                    // Only allow numbers
+                    const value = e.target.value.replace(/\D/g, '');
+                    setFormData(prev => ({ ...prev, kontak: value }));
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="082323232332"
+                  maxLength={15}
+                  pattern="[0-9]*"
+                />
+                <p className="text-xs text-gray-500 mt-1">Contoh: 082323232332 (tanpa +62 atau 0)</p>
               </div>
 
               <div>

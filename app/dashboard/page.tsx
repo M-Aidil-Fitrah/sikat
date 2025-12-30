@@ -59,9 +59,9 @@ export default function Dashboard() {
 
   const stats = {
     totalReports: disasters.length,
-    banjir: disasters.filter(d => d.type === 'Banjir').length,
-    longsor: disasters.filter(d => d.type === 'Longsor').length,
-    verified: disasters.filter(d => d.verified).length
+    banjir: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('banjir')).length,
+    longsor: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('longsor')).length,
+    approved: disasters.filter(d => d.status === 'APPROVED').length
   };
 
   return (
@@ -127,7 +127,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Dashboard Kebencanaan</h1>
-              <p className="text-gray-500 mt-1">Pemantauan Banjir & Longsor - Wilayah Sumatera</p>
+              <p className="text-gray-500 mt-1">Pemantauan Banjir & Longsor - Wilayah Sumatra</p>
             </div>
             <div className="flex items-center gap-3">
               <button 
@@ -226,8 +226,8 @@ export default function Dashboard() {
                   </svg>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.verified}</div>
-              <div className="text-gray-500 font-medium">Terverifikasi</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.approved}</div>
+              <div className="text-gray-500 font-medium">Diverifikasi</div>
             </div>
           </div>
 
@@ -239,7 +239,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Banjir & Longsor</h2>
-                    <p className="text-sm text-gray-500 mt-1">Wilayah Sumatera - Monitoring Real-time</p>
+                    <p className="text-sm text-gray-500 mt-1">Wilayah Sumatra - Monitoring Real-time</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
@@ -272,7 +272,7 @@ export default function Dashboard() {
                         selectedDisaster?.tingkatKerusakan === 'Sedang' ? 'bg-amber-200' :
                         'bg-green-200'
                       }`}></span>
-                      <h3 className="font-bold text-lg">{selectedDisaster?.type || 'Bencana'}</h3>
+                      <h3 className="font-bold text-lg">{selectedDisaster?.jenisKerusakan}</h3>
                     </div>
                     <p className="text-red-100 text-sm">{selectedDisaster?.namaObjek}</p>
                   </div>
@@ -334,15 +334,32 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex items-start gap-3">
+                        <svg className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">Kontak</div>
+                          <div className="text-gray-600">{selectedDisaster?.kontak}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
                         <CheckCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Status</div>
-                          {selectedDisaster?.verified ? (
+                          {selectedDisaster?.status === 'APPROVED' ? (
                             <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
-                              Terverifikasi
+                              Diverifikasi
+                            </span>
+                          ) : selectedDisaster?.status === 'REJECTED' ? (
+                            <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Ditolak
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
@@ -394,7 +411,7 @@ export default function Dashboard() {
                           'bg-green-500'
                         }`}></span>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm">{disaster.type || 'Bencana'}</div>
+                          <div className="font-medium text-gray-900 text-sm">{disaster.jenisKerusakan}</div>
                           <div className="text-xs text-gray-500 mt-0.5">{disaster.namaObjek}</div>
                           <div className="text-xs text-gray-400 mt-1">{disaster.timestamp}</div>
                         </div>

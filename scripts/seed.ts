@@ -3,7 +3,7 @@
  * Run with: npx tsx scripts/seed.ts
  */
 
-import { PrismaClient, ReportStatus, TingkatKerusakan, Severity } from '@prisma/client';
+import { PrismaClient, ReportStatus, TingkatKerusakan } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -17,46 +17,40 @@ async function seed() {
         lat: 5.5483,
         lng: 95.3238,
         namaPelapor: 'BPBD Banda Aceh',
+        kontak: '081234567890',
         desaKecamatan: 'Banda Aceh Tengah, Banda Aceh',
         namaObjek: 'Pemukiman Padat Penduduk',
         jenisKerusakan: 'Banjir - Rumah tinggal terendam',
         tingkatKerusakan: TingkatKerusakan.Berat,
         fotoLokasi: ['/placeholder-flood1.jpg'],
         keteranganKerusakan: 'Ketinggian air 1-2 meter, akses jalan tertutup, listrik padam',
-        type: 'Banjir',
-        severity: Severity.high,
         status: ReportStatus.APPROVED,
-        verified: true,
       },
       {
         lat: 5.5788,
         lng: 95.3450,
         namaPelapor: 'Relawan PMI',
+        kontak: '081234567891',
         desaKecamatan: 'Ulee Kareng, Banda Aceh',
         namaObjek: 'Kompleks Perumahan Ulee Kareng',
         jenisKerusakan: 'Banjir - Pemukiman dan fasilitas umum',
         tingkatKerusakan: TingkatKerusakan.Berat,
         fotoLokasi: ['/placeholder-flood1.jpg'],
         keteranganKerusakan: 'Masjid terendam, puskesmas tidak beroperasi',
-        type: 'Banjir',
-        severity: Severity.high,
         status: ReportStatus.APPROVED,
-        verified: true,
       },
       {
         lat: 5.4891,
         lng: 95.4012,
         namaPelapor: 'BPBD Aceh Besar',
+        kontak: '081234567892',
         desaKecamatan: 'Krueng Raya, Aceh Besar',
         namaObjek: 'Jalan Provinsi Km 12',
         jenisKerusakan: 'Longsor - Jalan tertutup material',
         tingkatKerusakan: TingkatKerusakan.Berat,
         fotoLokasi: ['/placeholder-landslide1.jpg'],
         keteranganKerusakan: 'Jalan provinsi tertutup material longsor, 8 rumah rusak berat',
-        type: 'Longsor',
-        severity: Severity.high,
         status: ReportStatus.PENDING,
-        verified: false,
       },
     ];
 

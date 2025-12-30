@@ -31,6 +31,7 @@ model Report {
   lat                  Float
   lng                  Float
   namaPelapor          String
+  kontak               String   // Nomor HP pelapor (contoh: 082323232332)
   desaKecamatan        String
   namaObjek            String
   jenisKerusakan       String
@@ -49,11 +50,6 @@ model Report {
   // Auto-approve tracking
   autoApproved         Boolean      @default(false)
   
-  // Legacy fields for backward compatibility
-  type                 String?
-  severity             Severity?
-  verified             Boolean      @default(false)
-  
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
@@ -71,12 +67,6 @@ enum TingkatKerusakan {
 
 enum ReportStatus {
   PENDING   // Laporan baru, menunggu review admin
-  APPROVED  // Disetujui admin, tampil di website
+  APPROVED  // Diverifikasi admin, tampil di website
   REJECTED  // Ditolak admin, tidak tampil di website
-}
-
-enum Severity {
-  low
-  medium
-  high
 }

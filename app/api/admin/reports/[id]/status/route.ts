@@ -57,7 +57,6 @@ export async function PUT(
         reviewedAt: new Date(),
         reviewedById: adminId,
         reviewNote: reviewNote || null,
-        verified: status === ReportStatus.APPROVED,
       },
       include: {
         reviewedBy: {
@@ -71,7 +70,7 @@ export async function PUT(
     });
 
     const statusText = 
-      status === ReportStatus.APPROVED ? 'disetujui' :
+      status === ReportStatus.APPROVED ? 'diverifikasi' :
       status === ReportStatus.REJECTED ? 'ditolak' : 'diubah';
 
     return NextResponse.json({

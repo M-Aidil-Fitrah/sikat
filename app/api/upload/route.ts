@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
 
     for (const file of files) {
       // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      if (file.size > 2 * 1024 * 1024) {
         return NextResponse.json(
-          { success: false, error: `File ${file.name} is too large (max 5MB)` },
+          { success: false, error: `File ${file.name} is too large (max 2MB)` },
           { status: 400 }
         );
       }

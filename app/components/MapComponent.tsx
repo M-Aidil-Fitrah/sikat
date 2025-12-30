@@ -26,14 +26,15 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Custom marker icons based on tingkatKerusakan and type
-const createCustomIcon = (tingkatKerusakan: string, type?: string) => {
+// Custom marker icons based on tingkatKerusakan and jenisKerusakan
+const createCustomIcon = (tingkatKerusakan: string, jenisKerusakan: string) => {
   const color = tingkatKerusakan === 'Berat' ? '#dc2626' : tingkatKerusakan === 'Sedang' ? '#f59e0b' : '#10b981';
   
   let iconSvg = '';
-  if (type === 'Banjir') {
+  const jenisLower = jenisKerusakan.toLowerCase();
+  if (jenisLower.includes('banjir')) {
     iconSvg = renderToString(<Droplets className="w-5 h-5" />);
-  } else if (type === 'Longsor') {
+  } else if (jenisLower.includes('longsor')) {
     iconSvg = renderToString(<Mountain className="w-5 h-5" />);
   } else {
     iconSvg = renderToString(<AlertTriangle className="w-5 h-5" />);
@@ -150,7 +151,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
         <Marker
           key={disaster.id}
           position={[disaster.lat, disaster.lng] as LatLngExpression}
-          icon={createCustomIcon(disaster.tingkatKerusakan, disaster.type || undefined)}
+          icon={createCustomIcon(disaster.tingkatKerusakan, disaster.jenisKerusakan)}
           eventHandlers={{
             click: () => onDisasterSelect(disaster)
           }}
@@ -163,7 +164,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
                   disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-500' :
                   'bg-green-500'
                 }`}></span>
-                <h3 className="font-bold text-gray-900">{disaster.type || 'Bencana'}</h3>
+                <h3 className="font-bold text-gray-900">{disaster.jenisKerusakan}</h3>
               </div>
               <div className="space-y-1">
                 <div className="flex items-start gap-2">
@@ -176,7 +177,15 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
                 </div>
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-                  <p className="text-sm text-gray-600">{disaster.jenisKerusakan}</p>
+                  <p className="text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      disaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
+                      disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {disaster.tingkatKerusakan}
+                    </span>
+                  </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <Clock className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
@@ -187,17 +196,14 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
                   <p className="text-sm text-gray-700">{disaster.keteranganKerusakan}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-1">
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <div className="flex items-center gap-1 mb-1">
                   <User className="w-3 h-3 text-gray-400" />
-                  <span className="text-xs text-gray-500">{disaster.namaPelapor}</span>
+                  <span className="text-xs text-gray-600">{disaster.namaPelapor}</span>
                 </div>
-                {disaster.verified && (
-                  <div className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                    <CheckCircle className="w-3 h-3" />
-                    <span>Terverifikasi</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-gray-500">📞 {disaster.kontak}</span>
+                </div>
               </div>
             </div>
           </Popup>
