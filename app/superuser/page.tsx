@@ -4,6 +4,9 @@ import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export default function SuperUserLogin() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -126,29 +129,6 @@ export default function SuperUserLogin() {
               )}
             </button>
           </form>
-
-          {/* Footer */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-            <p className="text-xs text-gray-500 text-center">
-              Halaman ini hanya untuk administrator. Jika Anda bukan admin, silakan kembali ke{' '}
-              <a href="/dashboard" className="text-red-600 hover:text-red-700 font-medium">
-                halaman utama
-              </a>
-            </p>
-          </div>
-        </div>
-
-        {/* Security Notice */}
-        <div className="mt-6 bg-white/50 backdrop-blur-sm rounded-xl border border-gray-200 p-4">
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-700">Keamanan Terjamin</p>
-              <p className="text-xs text-gray-600 mt-1">
-                Login Anda dilindungi dengan enkripsi JWT dan cookie httpOnly
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -6,10 +6,11 @@ import { verifyToken } from '@/lib/jwt';
 // PATCH /api/admin/reports/[id]/status - Update report status (approve/reject)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reportId = parseInt(params.id);
+    const { id } = await params;
+    const reportId = parseInt(id);
 
     if (isNaN(reportId)) {
       return NextResponse.json(

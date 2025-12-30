@@ -43,3 +43,5 @@ next-env.d.ts
 *.md
 public/uploads/reports/*jpg
 public/uploads/reports/*jpeg
+public/uploads/reports/*png
+public/uploads/reports/*heic
