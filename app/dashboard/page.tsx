@@ -69,7 +69,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col h-screen">
+      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-10">
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-11 h-11 bg-linear-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
@@ -123,7 +123,7 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto ml-72 min-h-screen">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-8 py-6">
           <div className="flex justify-between items-center">
@@ -205,9 +205,9 @@ export default function Dashboard() {
           </div>
 
           {/* Map and Detail Section */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6 items-start">
             {/* Map */}
-            <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-fit">
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
@@ -223,7 +223,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="h-150">
+              <div className="h-150 relative overflow-hidden">
                 <MapComponent 
                   key="dashboard-map"
                   selectedDisaster={selectedDisaster} 
