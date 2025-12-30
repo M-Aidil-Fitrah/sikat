@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { DisasterData, disasterData } from "../components/MapComponent";
@@ -26,7 +26,29 @@ const DisasterForm = dynamic(() => import("../components/DisasterForm"), {
 export default function Dashboard() {
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
-  const [disasters, setDisasters] = useState(disasterData);
+  const [disasters, setDisasters] = useState<DisasterData[]>([]);
+
+  // Load disasters from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('sikat_disasters');
+    if (saved) {
+      try {
+        setDisasters(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error loading disasters:', error);
+        setDisasters(disasterData);
+      }
+    } else {
+      setDisasters(disasterData);
+    }
+  }, []);
+
+  // Save disasters to localStorage whenever it changes
+  useEffect(() => {
+    if (disasters.length > 0) {
+      localStorage.setItem('sikat_disasters', JSON.stringify(disasters));
+    }
+  }, [disasters]);
 
   const handleFormSubmit = (data: any) => {
     const newDisaster = {
@@ -202,6 +224,7 @@ export default function Dashboard() {
                   key="dashboard-map"
                   selectedDisaster={selectedDisaster} 
                   onDisasterSelect={setSelectedDisaster}
+                  disasters={disasters}
                 />
               </div>
             </div>

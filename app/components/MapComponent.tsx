@@ -294,6 +294,7 @@ const getSeverityColor = (tingkatKerusakan: string) => {
 interface MapComponentProps {
   selectedDisaster: DisasterData | null;
   onDisasterSelect: (disaster: DisasterData) => void;
+  disasters?: DisasterData[];
 }
 
 function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
@@ -308,7 +309,7 @@ function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
   return null;
 }
 
-export default function MapComponent({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
+export default function MapComponent({ selectedDisaster, onDisasterSelect, disasters = disasterData }: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [mapId] = useState(() => `map-${Math.random().toString(36).substr(2, 9)}`);
@@ -358,7 +359,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
       
-      {disasterData.map((disaster) => (
+      {disasters.map((disaster) => (
         <Marker
           key={disaster.id}
           position={[disaster.lat, disaster.lng] as LatLngExpression}
@@ -417,7 +418,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
       ))}
       
       {/* Radius circles for high severity disasters */}
-      {disasterData.filter(d => d.tingkatKerusakan === 'Berat').map((disaster) => (
+      {disasters.filter(d => d.tingkatKerusakan === 'Berat').map((disaster) => (
         <Circle
           key={`circle-${disaster.id}`}
           center={[disaster.lat, disaster.lng] as LatLngExpression}

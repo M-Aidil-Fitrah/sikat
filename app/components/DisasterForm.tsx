@@ -390,7 +390,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-2xl">
         {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-orange-600 p-6 rounded-t-2xl flex items-center justify-between">
+        <div className="bg-linear-to-r from-red-600 to-orange-600 p-6 rounded-t-2xl flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">Tambah Laporan Bencana</h2>
           <button
             onClick={onClose}
@@ -628,7 +628,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                       setShowMap(true);
                     }
                   }}
-                  className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full px-6 py-4 bg-linear-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <MapPin className="w-5 h-5" />
                   Lanjut ke Lokasi {photoMode === 'capture' ? '(GPS Otomatis)' : '(Pilih di Peta)'}
@@ -750,7 +750,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg"
+                  className="flex-1 px-6 py-4 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg"
                 >
                   Kirim Laporan
                 </button>
