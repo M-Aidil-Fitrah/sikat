@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+// Force dynamic rendering for authentication
+export const dynamic = 'force-dynamic';
 import { 
   Shield, 
   LogOut, 
