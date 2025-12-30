@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // hashed password
+  name      String
+  email     String   @unique
+  role      String   @default("admin") // untuk future: bisa ada role berbeda
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi: user yang mereview reports
+  reviewedReports Report[] @relation("ReviewedBy")
+
+  @@map("users")
+}
+
+model Report {
+  id                   Int      @id @default(autoincrement())
+  lat                  Float
+  lng                  Float
+  namaPelapor          String
+  desaKecamatan        String
+  namaObjek            String
+  jenisKerusakan       String
+  tingkatKerusakan     TingkatKerusakan
+  fotoLokasi           String[] // Array of file paths
+  keteranganKerusakan  String   @db.Text
+  
+  // Status management
+  status               ReportStatus @default(PENDING)
+  submittedAt          DateTime     @default(now())
+  reviewedAt           DateTime?
+  reviewedById         Int?
+  reviewedBy           User?        @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewNote           String?      @db.Text // Catatan admin saat review
+  
+  // Auto-approve tracking
+  autoApproved         Boolean      @default(false)
+  
+  // Legacy fields for backward compatibility
+  type                 String?
+  severity             Severity?
+  verified             Boolean      @default(false)
+  
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@map("reports")
+  @@index([status])
+  @@index([submittedAt])
+  @@index([lat, lng])
+}
+
+enum TingkatKerusakan {
+  Ringan
+  Sedang
+  Berat
+}
+
+enum ReportStatus {
+  PENDING   // Laporan baru, menunggu review admin
+  APPROVED  // Disetujui admin, tampil di website
+  REJECTED  // Ditolak admin, tidak tampil di website
+}
+
+enum Severity {
+  low
+  medium
+  high
+}
