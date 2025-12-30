@@ -6,218 +6,234 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
 import type { LatLngExpression } from 'leaflet';
 
-// Fix Leaflet default marker icon issue in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+// Fix Leaflet default marker icon issue in Next.js (only on client-side)
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+}
 
 interface DisasterData {
   id: number;
-  location: string;
-  region: string;
-  type: string;
-  severity: 'high' | 'medium' | 'low';
-  kk: number;
-  jiwa: number;
   lat: number;
   lng: number;
+  namaPelapor: string;
+  desaKecamatan: string;
+  namaObjek: string;
+  jenisKerusakan: string;
+  tingkatKerusakan: 'Ringan' | 'Sedang' | 'Berat';
+  fotoLokasi: string[];
+  keteranganKerusakan: string;
   timestamp: string;
-  damage: string;
-  reporter: string;
   verified: boolean;
+  // Legacy fields for backward compatibility
+  type?: string;
+  severity?: 'high' | 'medium' | 'low';
 }
 
 // Sample disaster data for Sumatera (focus on floods and landslides)
 const disasterData: DisasterData[] = [
   {
     id: 1,
-    location: 'Banda Aceh Tengah',
-    region: 'Banda Aceh',
-    type: 'Banjir',
-    severity: 'high',
-    kk: 147,
-    jiwa: 589,
     lat: 5.5483,
     lng: 95.3238,
+    namaPelapor: 'BPBD Banda Aceh',
+    desaKecamatan: 'Banda Aceh Tengah, Banda Aceh',
+    namaObjek: 'Pemukiman Padat Penduduk',
+    jenisKerusakan: 'Banjir - Rumah tinggal terendam',
+    tingkatKerusakan: 'Berat',
+    fotoLokasi: ['/placeholder-flood1.jpg', '/placeholder-flood2.jpg', '/placeholder-flood3.jpg'],
+    keteranganKerusakan: 'Ketinggian air 1-2 meter, akses jalan tertutup, listrik padam',
     timestamp: '2 jam lalu',
-    damage: 'Rumah tinggal terendam, ketinggian air 1-2 meter',
-    reporter: 'BPBD Banda Aceh',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'high'
   },
   {
     id: 2,
-    location: 'Ulee Kareng',
-    region: 'Banda Aceh',
-    type: 'Banjir',
-    severity: 'high',
-    kk: 89,
-    jiwa: 356,
     lat: 5.5788,
     lng: 95.3450,
+    namaPelapor: 'Relawan PMI',
+    desaKecamatan: 'Ulee Kareng, Banda Aceh',
+    namaObjek: 'Kompleks Perumahan Ulee Kareng',
+    jenisKerusakan: 'Banjir - Pemukiman dan fasilitas umum',
+    tingkatKerusakan: 'Berat',
+    fotoLokasi: ['/placeholder-flood1.jpg', '/placeholder-flood2.jpg'],
+    keteranganKerusakan: 'Masjid terendam, puskesmas tidak beroperasi, jalan utama tertutup air',
     timestamp: '3 jam lalu',
-    damage: 'Pemukiman padat terendam, fasilitas umum terdampak',
-    reporter: 'Relawan PMI',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'high'
   },
   {
     id: 3,
-    location: 'Krueng Raya',
-    region: 'Aceh Besar',
-    type: 'Longsor',
-    severity: 'high',
-    kk: 124,
-    jiwa: 496,
     lat: 5.4891,
     lng: 95.4012,
+    namaPelapor: 'BPBD Aceh Besar',
+    desaKecamatan: 'Krueng Raya, Aceh Besar',
+    namaObjek: 'Jalan Provinsi Km 12',
+    jenisKerusakan: 'Longsor - Jalan tertutup material',
+    tingkatKerusakan: 'Berat',
+    fotoLokasi: ['/placeholder-landslide1.jpg', '/placeholder-landslide2.jpg', '/placeholder-landslide3.jpg'],
+    keteranganKerusakan: 'Jalan provinsi tertutup material longsor, 8 rumah rusak berat, akses terputus total',
     timestamp: '5 jam lalu',
-    damage: 'Jalan utama tertutup material longsor, 8 rumah rusak berat',
-    reporter: 'BPBD Aceh Besar',
-    verified: true
+    verified: true,
+    type: 'Longsor',
+    severity: 'high'
   },
   {
     id: 4,
-    location: 'Lhoknga',
-    region: 'Aceh Besar',
-    type: 'Banjir',
-    severity: 'medium',
-    kk: 67,
-    jiwa: 268,
     lat: 5.4683,
     lng: 95.2589,
+    namaPelapor: 'Dinas Sosial Aceh Besar',
+    desaKecamatan: 'Lhoknga, Aceh Besar',
+    namaObjek: 'Pemukiman Pesisir Lhoknga',
+    jenisKerusakan: 'Banjir - Rob dan luapan',
+    tingkatKerusakan: 'Sedang',
+    fotoLokasi: ['/placeholder-flood1.jpg', '/placeholder-flood2.jpg'],
+    keteranganKerusakan: 'Air laut pasang tinggi, genangan hingga 50cm, beberapa rumah terendam',
     timestamp: '8 jam lalu',
-    damage: 'Pemukiman pesisir terendam rob dan banjir',
-    reporter: 'Dinas Sosial',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'medium'
   },
   {
     id: 5,
-    location: 'Lampisang',
-    region: 'Aceh Besar',
-    type: 'Longsor',
-    severity: 'medium',
-    kk: 45,
-    jiwa: 180,
     lat: 5.5234,
     lng: 95.2890,
+    namaPelapor: 'BPBD Aceh Besar',
+    desaKecamatan: 'Lampisang, Aceh Besar',
+    namaObjek: 'Area Persawahan Lampisang',
+    jenisKerusakan: 'Longsor - Menimpa pemukiman',
+    tingkatKerusakan: 'Sedang',
+    fotoLokasi: ['/placeholder-landslide1.jpg', '/placeholder-landslide2.jpg'],
+    keteranganKerusakan: 'Material longsor menimpa 2 rumah dan area persawahan seluas 1 hektar',
     timestamp: '12 jam lalu',
-    damage: 'Longsor menimpa area persawahan dan 2 rumah',
-    reporter: 'BPBD Aceh Besar',
-    verified: true
+    verified: true,
+    type: 'Longsor',
+    severity: 'medium'
   },
   {
     id: 6,
-    location: 'Sukakarya',
-    region: 'Sabang',
-    type: 'Banjir',
-    severity: 'medium',
-    kk: 56,
-    jiwa: 224,
     lat: 5.8933,
     lng: 95.3214,
+    namaPelapor: 'BPBD Sabang',
+    desaKecamatan: 'Sukakarya, Sabang',
+    namaObjek: 'Permukiman Sukakarya',
+    jenisKerusakan: 'Banjir - Genangan air',
+    tingkatKerusakan: 'Sedang',
+    fotoLokasi: ['/placeholder-flood1.jpg'],
+    keteranganKerusakan: 'Drainase tersumbat, genangan merata di permukiman',
     timestamp: '1 hari lalu',
-    damage: 'Genangan air di permukiman warga',
-    reporter: 'BPBD Sabang',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'medium'
   },
   {
     id: 7,
-    location: 'Blang Bintang',
-    region: 'Aceh Besar',
-    type: 'Banjir',
-    severity: 'high',
-    kk: 156,
-    jiwa: 624,
     lat: 5.5123,
     lng: 95.3567,
+    namaPelapor: 'BPBD Aceh Besar',
+    desaKecamatan: 'Blang Bintang, Aceh Besar',
+    namaObjek: 'Daerah Aliran Sungai Blang Bintang',
+    jenisKerusakan: 'Banjir - Luapan sungai',
+    tingkatKerusakan: 'Berat',
+    fotoLokasi: ['/placeholder-flood1.jpg', '/placeholder-flood2.jpg', '/placeholder-flood3.jpg'],
+    keteranganKerusakan: 'Sungai meluap, ratusan rumah terendam hingga 1.5 meter, jembatan rusak',
     timestamp: '1 hari lalu',
-    damage: 'Luapan sungai, ratusan rumah terendam',
-    reporter: 'BPBD Aceh Besar',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'high'
   },
   {
     id: 8,
-    location: 'Indrapuri',
-    region: 'Aceh Besar',
-    type: 'Longsor',
-    severity: 'medium',
-    kk: 34,
-    jiwa: 136,
     lat: 5.4456,
     lng: 95.6234,
+    namaPelapor: 'Masyarakat Indrapuri',
+    desaKecamatan: 'Indrapuri, Aceh Besar',
+    namaObjek: 'Tebing Jalan Desa',
+    jenisKerusakan: 'Longsor - Akses jalan terputus',
+    tingkatKerusakan: 'Sedang',
+    fotoLokasi: ['/placeholder-landslide1.jpg', '/placeholder-landslide2.jpg'],
+    keteranganKerusakan: 'Tebing setinggi 10 meter longsor, volume tanah sekitar 200 m³, jalur alternatif tersedia',
     timestamp: '1 hari lalu',
-    damage: 'Tebing setinggi 10 meter longsor, akses jalan terputus',
-    reporter: 'Masyarakat',
-    verified: false
+    verified: false,
+    type: 'Longsor',
+    severity: 'medium'
   },
   {
     id: 9,
-    location: 'Kuta Alam',
-    region: 'Banda Aceh',
-    type: 'Banjir',
-    severity: 'medium',
-    kk: 78,
-    jiwa: 312,
     lat: 5.5456,
     lng: 95.3189,
+    namaPelapor: 'Lurah Kuta Alam',
+    desaKecamatan: 'Kuta Alam, Banda Aceh',
+    namaObjek: 'Kelurahan Kuta Alam',
+    jenisKerusakan: 'Banjir - Banjir kiriman',
+    tingkatKerusakan: 'Sedang',
+    fotoLokasi: ['/placeholder-flood1.jpg', '/placeholder-flood2.jpg'],
+    keteranganKerusakan: 'Air kiriman dari daerah hulu, genangan 30-70 cm di jalan dan rumah',
     timestamp: '2 hari lalu',
-    damage: 'Banjir kiriman dari hulu sungai',
-    reporter: 'Lurah Kuta Alam',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'medium'
   },
   {
     id: 10,
-    location: 'Meuraxa',
-    region: 'Banda Aceh',
-    type: 'Banjir',
-    severity: 'low',
-    kk: 42,
-    jiwa: 168,
     lat: 5.5678,
     lng: 95.3412,
+    namaPelapor: 'Relawan Meuraxa',
+    desaKecamatan: 'Meuraxa, Banda Aceh',
+    namaObjek: 'Beberapa Titik di Meuraxa',
+    jenisKerusakan: 'Banjir - Genangan',
+    tingkatKerusakan: 'Ringan',
+    fotoLokasi: ['/placeholder-flood1.jpg'],
+    keteranganKerusakan: 'Genangan di 5 titik, ketinggian 20-40 cm, tidak merusak bangunan',
     timestamp: '2 hari lalu',
-    damage: 'Genangan setinggi 30-50 cm di beberapa titik',
-    reporter: 'Relawan',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'low'
   },
   {
     id: 11,
-    location: 'Lhok Nga',
-    region: 'Aceh Besar',
-    type: 'Longsor',
-    severity: 'high',
-    kk: 67,
-    jiwa: 268,
     lat: 5.4234,
     lng: 95.2456,
+    namaPelapor: 'BPBD Aceh Besar',
+    desaKecamatan: 'Lhok Nga, Aceh Besar',
+    namaObjek: 'Jalan Provinsi Lhok Nga',
+    jenisKerusakan: 'Longsor - Longsor besar',
+    tingkatKerusakan: 'Berat',
+    fotoLokasi: ['/placeholder-landslide1.jpg', '/placeholder-landslide2.jpg', '/placeholder-landslide3.jpg'],
+    keteranganKerusakan: 'Longsor masif, 5 rumah hancur total, jalan provinsi tertutup sepenuhnya',
     timestamp: '3 hari lalu',
-    damage: 'Longsor besar menutup jalan provinsi, 5 rumah hancur',
-    reporter: 'BPBD Aceh Besar',
-    verified: true
+    verified: true,
+    type: 'Longsor',
+    severity: 'high'
   },
   {
     id: 12,
-    location: 'Peukan Bada',
-    region: 'Aceh Besar',
-    type: 'Banjir',
-    severity: 'medium',
-    kk: 91,
-    jiwa: 364,
     lat: 5.5901,
     lng: 95.4123,
+    namaPelapor: 'Dinas Pertanian Aceh Besar',
+    desaKecamatan: 'Peukan Bada, Aceh Besar',
+    namaObjek: 'Area Persawahan Peukan Bada',
+    jenisKerusakan: 'Banjir - Persawahan terendam',
+    tingkatKerusakan: 'Sedang',
+    fotoLokasi: ['/placeholder-flood1.jpg', '/placeholder-flood2.jpg'],
+    keteranganKerusakan: 'Lahan pertanian terendam, padi gagal panen, beberapa rumah tergenang',
     timestamp: '3 hari lalu',
-    damage: 'Persawahan terendam, rumah warga tergenang',
-    reporter: 'Dinas Pertanian',
-    verified: true
+    verified: true,
+    type: 'Banjir',
+    severity: 'medium'
   }
 ];
 
-// Custom marker icons based on severity and type
-const createCustomIcon = (severity: string, type: string) => {
-  const color = severity === 'high' ? '#dc2626' : severity === 'medium' ? '#f59e0b' : '#10b981';
-  const emoji = type === 'Banjir' ? '💧' : '⛰️';
+// Custom marker icons based on tingkatKerusakan and type
+const createCustomIcon = (tingkatKerusakan: string, type?: string) => {
+  const color = tingkatKerusakan === 'Berat' ? '#dc2626' : tingkatKerusakan === 'Sedang' ? '#f59e0b' : '#10b981';
+  const emoji = type === 'Banjir' ? '💧' : type === 'Longsor' ? '⛰️' : '⚠️';
   
   return L.divIcon({
     className: 'custom-marker',
@@ -247,6 +263,19 @@ const createCustomIcon = (severity: string, type: string) => {
   });
 };
 
+const getSeverityColor = (tingkatKerusakan: string) => {
+  switch (tingkatKerusakan) {
+    case 'Berat':
+      return '#dc2626';
+    case 'Sedang':
+      return '#f59e0b';
+    case 'Ringan':
+      return '#10b981';
+    default:
+      return '#6b7280';
+  }
+};
+
 interface MapComponentProps {
   selectedDisaster: DisasterData | null;
   onDisasterSelect: (disaster: DisasterData) => void;
@@ -257,7 +286,7 @@ function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
 
   useEffect(() => {
     if (selectedDisaster) {
-      map.setView([selectedDisaster.lat, selectedDisaster.lng], 13);
+      map.setView([selectedDisaster.lat, selectedDisaster.lng] as LatLngExpression, 13);
     }
   }, [selectedDisaster, map]);
 
@@ -266,14 +295,21 @@ function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
 
 export default function MapComponent({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [mapKey, setMapKey] = useState(0);
 
   useEffect(() => {
     setIsMounted(true);
+    // Force remount on component mount to prevent reuse issues
+    setMapKey(prev => prev + 1);
+    
+    return () => {
+      setIsMounted(false);
+    };
   }, []);
 
   if (!isMounted) {
     return (
-      <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center rounded-2xl">
+      <div className="w-full h-full bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center rounded-2xl">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-600 font-medium">Memuat peta...</p>
@@ -288,38 +324,41 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
       zoom={10}
       style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
       className="z-0"
+      key={`map-${mapKey}`}
+      scrollWheelZoom={true}
+      zoomControl={true}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
       
       {disasterData.map((disaster) => (
         <Marker
           key={disaster.id}
           position={[disaster.lat, disaster.lng] as LatLngExpression}
-          icon={createCustomIcon(disaster.severity, disaster.type)}
+          icon={createCustomIcon(disaster.tingkatKerusakan, disaster.type)}
           eventHandlers={{
             click: () => onDisasterSelect(disaster)
           }}
         >
           <Popup>
-            <div className="p-2 min-w-50">
+            <div className="p-2 min-w-[200px]">
               <div className="flex items-center gap-2 mb-2">
                 <span className={`w-3 h-3 rounded-full ${
-                  disaster.severity === 'high' ? 'bg-red-500' :
-                  disaster.severity === 'medium' ? 'bg-amber-500' :
+                  disaster.tingkatKerusakan === 'Berat' ? 'bg-red-500' :
+                  disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-500' :
                   'bg-green-500'
                 }`}></span>
-                <h3 className="font-bold text-gray-900">{disaster.type}</h3>
+                <h3 className="font-bold text-gray-900">{disaster.type || 'Bencana'}</h3>
               </div>
-              <p className="text-sm text-gray-600 mb-1">📍 {disaster.location}</p>
-              <p className="text-sm text-gray-600 mb-1">🏘️ {disaster.region}</p>
-              <p className="text-sm text-gray-600 mb-1">👨‍👩‍👧‍👦 {disaster.kk} KK / {disaster.jiwa} Jiwa</p>
+              <p className="text-sm text-gray-600 mb-1">📍 {disaster.namaObjek}</p>
+              <p className="text-sm text-gray-600 mb-1">🏘️ {disaster.desaKecamatan}</p>
+              <p className="text-sm text-gray-600 mb-1">⚠️ {disaster.jenisKerusakan}</p>
               <p className="text-xs text-gray-500 mb-2">⏰ {disaster.timestamp}</p>
-              <p className="text-sm text-gray-700 mb-2">{disaster.damage}</p>
+              <p className="text-sm text-gray-700 mb-2">{disaster.keteranganKerusakan}</p>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">{disaster.reporter}</span>
+                <span className="text-xs text-gray-500">{disaster.namaPelapor}</span>
                 {disaster.verified && (
                   <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">✓ Terverifikasi</span>
                 )}
@@ -330,7 +369,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
       ))}
       
       {/* Radius circles for high severity disasters */}
-      {disasterData.filter(d => d.severity === 'high').map((disaster) => (
+      {disasterData.filter(d => d.tingkatKerusakan === 'Berat').map((disaster) => (
         <Circle
           key={`circle-${disaster.id}`}
           center={[disaster.lat, disaster.lng] as LatLngExpression}

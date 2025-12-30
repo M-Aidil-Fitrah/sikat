@@ -9,7 +9,7 @@ import { DisasterData, disasterData } from "../components/MapComponent";
 const MapComponent = dynamic(() => import("../components/MapComponent"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center rounded-2xl">
+    <div className="w-full h-full bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center rounded-2xl">
       <div className="text-center">
         <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
         <p className="text-slate-600 font-medium">Memuat peta...</p>
@@ -21,11 +21,12 @@ const MapComponent = dynamic(() => import("../components/MapComponent"), {
 export default function Dashboard() {
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
+  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   const stats = {
     totalReports: disasterData.length,
-    totalKK: disasterData.reduce((sum, d) => sum + d.kk, 0),
-    totalJiwa: disasterData.reduce((sum, d) => sum + d.jiwa, 0),
+    banjir: disasterData.filter(d => d.type === 'Banjir').length,
+    longsor: disasterData.filter(d => d.type === 'Longsor').length,
     verified: disasterData.filter(d => d.verified).length
   };
 
@@ -35,7 +36,7 @@ export default function Dashboard() {
       <aside className="w-72 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 bg-gradient-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+            <div className="w-11 h-11 bg-linear-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
               <span className="text-white font-bold text-xl">S</span>
             </div>
             <div>
@@ -122,7 +123,7 @@ export default function Dashboard() {
               </button>
               <button 
                 onClick={() => setShowInputForm(!showInputForm)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30"
+                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -136,7 +137,7 @@ export default function Dashboard() {
         <div className="p-8">
           {/* Stats Cards */}
           <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-xl shadow-red-500/30">
+            <div className="bg-linear-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-xl shadow-red-500/30">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,25 +153,21 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
+                  <span className="text-2xl">💧</span>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.totalKK}</div>
-              <div className="text-gray-500 font-medium">KK Terdampak</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.banjir}</div>
+              <div className="text-gray-500 font-medium">Banjir</div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
+                  <span className="text-2xl">⛰️</span>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.totalJiwa}</div>
-              <div className="text-gray-500 font-medium">Jiwa Terdampak</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.longsor}</div>
+              <div className="text-gray-500 font-medium">Longsor</div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -205,8 +202,9 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              <div className="h-[600px]">
+              <div className="h-150">
                 <MapComponent 
+                  key="dashboard-map"
                   selectedDisaster={selectedDisaster} 
                   onDisasterSelect={setSelectedDisaster}
                 />
@@ -218,39 +216,50 @@ export default function Dashboard() {
               {/* Selected Disaster Detail */}
               {selectedDisaster ? (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="bg-gradient-to-r from-red-600 to-orange-600 p-6 text-white">
+                  <div className="bg-linear-to-r from-red-600 to-orange-600 p-6 text-white">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`w-3 h-3 rounded-full ${
-                        selectedDisaster.severity === 'high' ? 'bg-white' :
-                        selectedDisaster.severity === 'medium' ? 'bg-amber-200' :
+                        selectedDisaster.tingkatKerusakan === 'Berat' ? 'bg-white' :
+                        selectedDisaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-200' :
                         'bg-green-200'
                       }`}></span>
-                      <h3 className="font-bold text-lg">{selectedDisaster.type}</h3>
+                      <h3 className="font-bold text-lg">{selectedDisaster.type || 'Bencana'}</h3>
                     </div>
-                    <p className="text-red-100 text-sm">{selectedDisaster.location}</p>
+                    <p className="text-red-100 text-sm">{selectedDisaster.namaObjek}</p>
                   </div>
                   
                   <div className="p-6 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-blue-50 rounded-xl p-4">
-                        <div className="text-3xl font-bold text-blue-600">{selectedDisaster.kk}</div>
-                        <div className="text-sm text-blue-600 font-medium">KK Terdampak</div>
-                      </div>
-                      <div className="bg-amber-50 rounded-xl p-4">
-                        <div className="text-3xl font-bold text-amber-600">{selectedDisaster.jiwa}</div>
-                        <div className="text-sm text-amber-600 font-medium">Jiwa</div>
-                      </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="text-xs text-gray-500 font-semibold mb-1">KOORDINAT</div>
+                      <div className="font-mono text-sm text-gray-900">{selectedDisaster.lat.toFixed(6)}, {selectedDisaster.lng.toFixed(6)}</div>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <div className="text-xs text-gray-500 font-semibold mb-1">LOKASI</div>
+                      <div className="text-sm text-gray-900">{selectedDisaster.desaKecamatan}</div>
                     </div>
 
                     <div className="space-y-3 text-sm">
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">📍</span>
+                        <span className="text-gray-400">⚠️</span>
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">Lokasi</div>
-                          <div className="text-gray-600">{selectedDisaster.region}</div>
+                          <div className="font-medium text-gray-900">Jenis Kerusakan</div>
+                          <div className="text-gray-600">{selectedDisaster.jenisKerusakan}</div>
                         </div>
                       </div>
                       
+                      <div className="flex items-start gap-3">
+                        <span className="text-gray-400">📊</span>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">Tingkat Kerusakan</div>
+                          <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
+                            selectedDisaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
+                            selectedDisaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>{selectedDisaster.tingkatKerusakan}</div>
+                        </div>
+                      </div>
+
                       <div className="flex items-start gap-3">
                         <span className="text-gray-400">⏰</span>
                         <div className="flex-1">
@@ -260,10 +269,10 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">💥</span>
+                        <span className="text-gray-400">📝</span>
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">Kerusakan</div>
-                          <div className="text-gray-600">{selectedDisaster.damage}</div>
+                          <div className="font-medium text-gray-900">Keterangan Kerusakan</div>
+                          <div className="text-gray-600">{selectedDisaster.keteranganKerusakan}</div>
                         </div>
                       </div>
 
@@ -271,12 +280,12 @@ export default function Dashboard() {
                         <span className="text-gray-400">👤</span>
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Pelapor</div>
-                          <div className="text-gray-600">{selectedDisaster.reporter}</div>
+                          <div className="text-gray-600">{selectedDisaster.namaPelapor}</div>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">📊</span>
+                        <span className="text-gray-400">✓</span>
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Status</div>
                           {selectedDisaster.verified ? (
@@ -299,7 +308,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">
-                      <button className="w-full px-4 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all">
+                      <button className="w-full px-4 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all">
                         Lihat Detail Lengkap
                       </button>
                     </div>
@@ -322,7 +331,7 @@ export default function Dashboard() {
                 <div className="p-4 border-b border-gray-100">
                   <h3 className="font-bold text-gray-900">Laporan Terkini</h3>
                 </div>
-                <div className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
+                <div className="divide-y divide-gray-100 max-h-75 overflow-y-auto">
                   {disasterData.slice(0, 5).map((disaster) => (
                     <button
                       key={disaster.id}
@@ -330,14 +339,14 @@ export default function Dashboard() {
                       className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
                     >
                       <div className="flex items-start gap-3">
-                        <span className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${
-                          disaster.severity === 'high' ? 'bg-red-500' :
-                          disaster.severity === 'medium' ? 'bg-amber-500' :
+                        <span className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${
+                          disaster.tingkatKerusakan === 'Berat' ? 'bg-red-500' :
+                          disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-500' :
                           'bg-green-500'
                         }`}></span>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm">{disaster.type}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{disaster.location}</div>
+                          <div className="font-medium text-gray-900 text-sm">{disaster.type || 'Bencana'}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{disaster.namaObjek}</div>
                           <div className="text-xs text-gray-400 mt-1">{disaster.timestamp}</div>
                         </div>
                       </div>
