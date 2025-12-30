@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { DisasterData, disasterData } from "../components/MapComponent";
-import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, Droplets, Mountain } from "lucide-react";
+import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp } from "lucide-react";
 
 // Dynamic import to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("../components/MapComponent"), {
@@ -169,22 +169,26 @@ export default function Dashboard() {
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Droplets className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.banjir}</div>
-              <div className="text-gray-500 font-medium">Banjir</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Berat').length}</div>
+              <div className="text-gray-500 font-medium">Kerusakan Berat</div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <Mountain className="w-6 h-6 text-amber-600" />
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.longsor}</div>
-              <div className="text-gray-500 font-medium">Longsor</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Sedang').length}</div>
+              <div className="text-gray-500 font-medium">Kerusakan Sedang</div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
