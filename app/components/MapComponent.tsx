@@ -5,6 +5,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
 import type { LatLngExpression } from 'leaflet';
+import { Droplets, Mountain, MapPin, Clock, AlertTriangle, FileText, User, CheckCircle } from 'lucide-react';
+import { renderToString } from 'react-dom/server';
 
 // Fix Leaflet default marker icon issue in Next.js (only on client-side)
 if (typeof window !== 'undefined') {
@@ -233,7 +235,15 @@ const disasterData: DisasterData[] = [
 // Custom marker icons based on tingkatKerusakan and type
 const createCustomIcon = (tingkatKerusakan: string, type?: string) => {
   const color = tingkatKerusakan === 'Berat' ? '#dc2626' : tingkatKerusakan === 'Sedang' ? '#f59e0b' : '#10b981';
-  const emoji = type === 'Banjir' ? '💧' : type === 'Longsor' ? '⛰️' : '⚠️';
+  
+  let iconSvg = '';
+  if (type === 'Banjir') {
+    iconSvg = renderToString(<Droplets className="w-5 h-5" />);
+  } else if (type === 'Longsor') {
+    iconSvg = renderToString(<Mountain className="w-5 h-5" />);
+  } else {
+    iconSvg = renderToString(<AlertTriangle className="w-5 h-5" />);
+  }
   
   return L.divIcon({
     className: 'custom-marker',
@@ -250,11 +260,9 @@ const createCustomIcon = (tingkatKerusakan: string, type?: string) => {
         justify-content: center;
         position: relative;
       ">
-        <span style="
-          color: white;
-          font-size: 20px;
-          font-weight: bold;
-        ">${emoji}</span>
+        <div style="color: white;">
+          ${iconSvg}
+        </div>
       </div>
     `,
     iconSize: [38, 38],
@@ -352,15 +360,38 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
                 }`}></span>
                 <h3 className="font-bold text-gray-900">{disaster.type || 'Bencana'}</h3>
               </div>
-              <p className="text-sm text-gray-600 mb-1">📍 {disaster.namaObjek}</p>
-              <p className="text-sm text-gray-600 mb-1">🏘️ {disaster.desaKecamatan}</p>
-              <p className="text-sm text-gray-600 mb-1">⚠️ {disaster.jenisKerusakan}</p>
-              <p className="text-xs text-gray-500 mb-2">⏰ {disaster.timestamp}</p>
-              <p className="text-sm text-gray-700 mb-2">{disaster.keteranganKerusakan}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">{disaster.namaPelapor}</span>
+              <div className="space-y-1">
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-gray-600">{disaster.namaObjek}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-gray-600">{disaster.desaKecamatan}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-gray-600">{disaster.jenisKerusakan}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-gray-500">{disaster.timestamp}</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-gray-700">{disaster.keteranganKerusakan}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3 text-gray-400" />
+                  <span className="text-xs text-gray-500">{disaster.namaPelapor}</span>
+                </div>
                 {disaster.verified && (
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">✓ Terverifikasi</span>
+                  <div className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                    <CheckCircle className="w-3 h-3" />
+                    <span>Terverifikasi</span>
+                  </div>
                 )}
               </div>
             </div>

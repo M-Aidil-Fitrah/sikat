@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { DisasterData, disasterData } from "../components/MapComponent";
+import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, Droplets, Mountain } from "lucide-react";
 
 // Dynamic import to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("../components/MapComponent"), {
@@ -76,7 +77,7 @@ export default function Dashboard() {
             <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Jenis Bencana</p>
             <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
               <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                <span>💧</span>
+                <Droplets className="w-5 h-5" />
               </div>
               <div className="flex-1">
                 <div className="font-semibold text-sm">Banjir</div>
@@ -85,7 +86,7 @@ export default function Dashboard() {
             </a>
             <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mt-2">
               <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white">
-                <span>⛰️</span>
+                <Mountain className="w-5 h-5" />
               </div>
               <div className="flex-1">
                 <div className="font-semibold text-sm">Longsor</div>
@@ -153,7 +154,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">💧</span>
+                  <Droplets className="w-6 h-6 text-blue-600" />
                 </div>
               </div>
               <div className="text-4xl font-bold text-gray-900 mb-2">{stats.banjir}</div>
@@ -163,7 +164,7 @@ export default function Dashboard() {
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <span className="text-2xl">⛰️</span>
+                  <Mountain className="w-6 h-6 text-amber-600" />
                 </div>
               </div>
               <div className="text-4xl font-bold text-gray-900 mb-2">{stats.longsor}</div>
@@ -241,7 +242,7 @@ export default function Dashboard() {
 
                     <div className="space-y-3 text-sm">
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">⚠️</span>
+                        <AlertTriangle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Jenis Kerusakan</div>
                           <div className="text-gray-600">{selectedDisaster.jenisKerusakan}</div>
@@ -249,7 +250,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">📊</span>
+                        <TrendingUp className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Tingkat Kerusakan</div>
                           <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
@@ -261,7 +262,7 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">⏰</span>
+                        <Clock className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Waktu</div>
                           <div className="text-gray-600">{selectedDisaster.timestamp}</div>
@@ -269,7 +270,7 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">📝</span>
+                        <FileText className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Keterangan Kerusakan</div>
                           <div className="text-gray-600">{selectedDisaster.keteranganKerusakan}</div>
@@ -277,7 +278,7 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">👤</span>
+                        <User className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Pelapor</div>
                           <div className="text-gray-600">{selectedDisaster.namaPelapor}</div>
@@ -285,7 +286,7 @@ export default function Dashboard() {
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <span className="text-gray-400">✓</span>
+                        <CheckCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Status</div>
                           {selectedDisaster.verified ? (
