@@ -41,7 +41,7 @@ export default function Home() {
               </h1>
               
               <p className="text-lg text-gray-600 leading-relaxed max-w-xl">
-                Portal berbasis web untuk mendukung penyediaan informasi kebencanaan di wilayah Aceh secara terintegrasi dan berbasis spasial. Membantu pemetaan kejadian bencana serta kondisi infrastruktur terdampak melalui partisipasi masyarakat.
+                Portal berbasis web untuk pemantauan dan pemetaan bencana banjir serta tanah longsor di wilayah Sumatera. Menyediakan informasi real-time mengenai lokasi kejadian, dampak infrastruktur, dan jumlah korban terdampak melalui partisipasi aktif masyarakat dan relawan.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4">
@@ -138,7 +138,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Fitur Unggulan</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Platform terintegrasi untuk monitoring dan koordinasi penanggulangan bencana di Aceh
+              Platform terintegrasi untuk pemantauan banjir dan longsor di wilayah Sumatera
             </p>
           </div>
 
@@ -149,9 +149,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Peta Interaktif</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Peta Interaktif Banjir & Longsor</h3>
               <p className="text-gray-600 leading-relaxed">
-                Visualisasi peta digital dengan informasi lokasi bencana, tingkat kerusakan, dan infrastruktur terdampak di seluruh Aceh.
+                Visualisasi peta digital real-time untuk memantau lokasi banjir dan longsor, tingkat kerusakan infrastruktur, serta jumlah korban terdampak di wilayah Sumatera.
               </p>
             </div>
 
@@ -161,9 +161,9 @@ export default function Home() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Laporan Cepat</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Pelaporan Partisipatif</h3>
               <p className="text-gray-600 leading-relaxed">
-                Masyarakat dapat melaporkan kejadian bencana beserta dokumentasi foto untuk respon yang lebih cepat dan tepat.
+                Masyarakat dan relawan dapat melaporkan kejadian banjir atau longsor secara langsung dengan koordinat lokasi dan dokumentasi foto untuk respon cepat.
               </p>
             </div>
 
@@ -194,7 +194,7 @@ export default function Home() {
                 <span className="text-xl font-bold">SIKAT</span>
               </div>
               <p className="text-gray-400 leading-relaxed">
-                Sistem Informasi Kebencanaan Terpadu untuk wilayah Aceh.
+                Sistem Informasi Kebencanaan Terpadu untuk pemantauan banjir dan longsor di wilayah Sumatera.
               </p>
             </div>
             
@@ -209,7 +209,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4">Kontak</h4>
               <p className="text-gray-400">
-                Untuk informasi lebih lanjut, hubungi instansi terkait penanggulangan bencana di daerah Anda.
+                Untuk informasi lebih lanjut, hubungi BPBD atau instansi terkait penanggulangan bencana di daerah Anda.
               </p>
             </div>
           </div>
