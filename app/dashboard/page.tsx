@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { DisasterData, disasterData } from "../components/MapComponent";
-import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp } from "lucide-react";
+import type { DisasterData, Report } from "@/lib/types";
+import { getReports } from "@/lib/api";
+import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
 
 // Dynamic import to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("../components/MapComponent"), {
@@ -27,35 +28,32 @@ export default function Dashboard() {
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
   const [disasters, setDisasters] = useState<DisasterData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load disasters from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('sikat_disasters');
-    if (saved) {
-      try {
-        setDisasters(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading disasters:', error);
-        setDisasters(disasterData);
-      }
-    } else {
-      setDisasters(disasterData);
+  // Load disasters from API
+  const loadDisasters = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await getReports();
+      setDisasters(data);
+    } catch (err) {
+      console.error('Error loading disasters:', err);
+      setError('Gagal memuat data laporan');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Load disasters on mount
+  useEffect(() => {
+    loadDisasters();
   }, []);
 
-  // Save disasters to localStorage whenever it changes
-  useEffect(() => {
-    if (disasters.length > 0) {
-      localStorage.setItem('sikat_disasters', JSON.stringify(disasters));
-    }
-  }, [disasters]);
-
-  const handleFormSubmit = (data: any) => {
-    const newDisaster = {
-      ...data,
-      id: disasters.length + 1,
-    };
-    setDisasters([newDisaster, ...disasters]);
+  const handleFormSubmit = (report: Report) => {
+    // Reload disasters after successful submission
+    loadDisasters();
     setShowInputForm(false);
   };
 
@@ -132,11 +130,15 @@ export default function Dashboard() {
               <p className="text-gray-500 mt-1">Pemantauan Banjir & Longsor - Wilayah Sumatera</p>
             </div>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              <button 
+                onClick={loadDisasters}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm"
+                disabled={isLoading}
+              >
+                <svg className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Export
+                {isLoading ? 'Memuat...' : 'Refresh'}
               </button>
               <button 
                 onClick={() => setShowInputForm(!showInputForm)}
@@ -149,6 +151,31 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+
+          {/* Loading State */}
+          {isLoading && disasters.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-600 font-medium">Memuat data laporan...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-center gap-4">
+              <AlertCircle className="w-8 h-8 text-red-600 shrink-0" />
+              <div>
+                <h3 className="font-semibold text-red-900">Gagal Memuat Data</h3>
+                <p className="text-red-700 text-sm mt-1">{error}</p>
+                <button 
+                  onClick={loadDisasters}
+                  className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+                >
+                  Coba Lagi
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-8">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { ReportStatus } from '@prisma/client';
+import { ReportStatus, Prisma } from '@prisma/client';
 import { autoApproveOldReports } from '@/lib/auto-approve';
 
 // GET /api/admin/reports - Get all reports with all statuses (admin only)
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const whereClause: Prisma.ReportWhereInput = {};
 
     // Filter by status
     if (status && Object.values(ReportStatus).includes(status as ReportStatus)) {

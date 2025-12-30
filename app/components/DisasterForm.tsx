@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Camera, Upload, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { LatLngExpression, LeafletMouseEvent } from 'leaflet';
+import { createReport, uploadPhotos } from '@/lib/api';
+import type { TingkatKerusakan, Report } from '@/lib/types';
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -19,7 +21,7 @@ const Marker = dynamic(
 
 interface DisasterFormProps {
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: Report) => void;
 }
 
 interface FormData {
@@ -27,11 +29,16 @@ interface FormData {
   desaKecamatan: string;
   namaObjek: string;
   jenisKerusakan: string;
-  tingkatKerusakan: 'Ringan' | 'Sedang' | 'Berat';
+  tingkatKerusakan: TingkatKerusakan;
   keteranganKerusakan: string;
   lat: number | null;
   lng: number | null;
   fotoLokasi: string[];
+}
+
+interface CapturedPhoto {
+  dataUrl: string;
+  file: File;
 }
 
 // Map click handler component with conditional import
@@ -58,13 +65,14 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     desaKecamatan: '',
     namaObjek: '',
     jenisKerusakan: '',
-    tingkatKerusakan: 'Sedang',
+    tingkatKerusakan: 'Sedang' as TingkatKerusakan,
     keteranganKerusakan: '',
     lat: null,
     lng: null,
     fotoLokasi: [],
   });
 
+  const [capturedPhotos, setCapturedPhotos] = useState<CapturedPhoto[]>([]);
   const [photoMode, setPhotoMode] = useState<'capture' | 'upload' | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -74,6 +82,8 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   const [showMap, setShowMap] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([5.5483, 95.3238]);
   const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -91,7 +101,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
   // PERBAIKAN: Auto-stop camera saat max photos tercapai
   useEffect(() => {
-    if (formData.fotoLokasi.length >= 3 && isCameraActive) {
+    if (capturedPhotos.length >= 3 && isCameraActive) {
       console.log('Max photos reached, stopping camera...');
       stopCamera();
       // Auto proceed to location after short delay
@@ -101,7 +111,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
         }
       }, 500);
     }
-  }, [formData.fotoLokasi.length, isCameraActive, photoMode]);
+  }, [capturedPhotos.length, isCameraActive, photoMode]);
 
   // Get current location
   const getCurrentLocation = () => {
@@ -246,13 +256,13 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
     canvas.toBlob((blob) => {
       if (blob) {
+        // Convert blob to File
+        const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setFormData(prev => ({
-            ...prev,
-            fotoLokasi: [...prev.fotoLokasi, base64String]
-          }));
+          const dataUrl = reader.result as string;
+          setCapturedPhotos(prev => [...prev, { dataUrl, file }]);
         };
         reader.readAsDataURL(blob);
       }
@@ -264,7 +274,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     const files = e.target.files;
     if (!files) return;
 
-    if (formData.fotoLokasi.length >= 3) {
+    if (capturedPhotos.length >= 3) {
       alert('Maksimal 3 foto');
       return;
     }
@@ -283,20 +293,17 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
         return;
       }
 
-      if (formData.fotoLokasi.length >= 3) {
+      if (capturedPhotos.length >= 3) {
         alert('Maksimal 3 foto');
         return;
       }
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setFormData(prev => {
-          if (prev.fotoLokasi.length >= 3) return prev;
-          return {
-            ...prev,
-            fotoLokasi: [...prev.fotoLokasi, base64String]
-          };
+        const dataUrl = reader.result as string;
+        setCapturedPhotos(prev => {
+          if (prev.length >= 3) return prev;
+          return [...prev, { dataUrl, file }];
         });
       };
       reader.readAsDataURL(file);
@@ -307,10 +314,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
   // Remove photo
   const removePhoto = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      fotoLokasi: prev.fotoLokasi.filter((_, i) => i !== index)
-    }));
+    setCapturedPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   // Handle photo mode selection
@@ -351,7 +355,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   };
 
   // Handle submit
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.lat || !formData.lng) {
@@ -359,31 +363,47 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
       return;
     }
     
-    if (formData.fotoLokasi.length === 0) {
+    if (capturedPhotos.length === 0) {
       alert('Minimal 1 foto harus diupload');
       return;
     }
 
-    const timestamp = new Date().toISOString();
-    const submissionData = {
-      ...formData,
-      timestamp: new Date().toLocaleString('id-ID', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      timestampISO: timestamp,
-      verified: false,
-      type: formData.jenisKerusakan.includes('Banjir') ? 'Banjir' : 
-            formData.jenisKerusakan.includes('Longsor') ? 'Longsor' : 'Lainnya',
-      severity: formData.tingkatKerusakan === 'Berat' ? 'high' :
-                formData.tingkatKerusakan === 'Sedang' ? 'medium' : 'low',
-    };
+    setIsSubmitting(true);
+    setSubmitError('');
 
-    onSubmit(submissionData);
-    onClose();
+    try {
+      // 1. Upload photos first
+      const files = capturedPhotos.map(photo => photo.file);
+      const uploadedPaths = await uploadPhotos(files);
+
+      // 2. Submit report with uploaded photo paths
+      const reportData = {
+        lat: formData.lat,
+        lng: formData.lng,
+        namaPelapor: formData.namaPelapor,
+        desaKecamatan: formData.desaKecamatan,
+        namaObjek: formData.namaObjek,
+        jenisKerusakan: formData.jenisKerusakan,
+        tingkatKerusakan: formData.tingkatKerusakan,
+        keteranganKerusakan: formData.keteranganKerusakan,
+        fotoLokasi: uploadedPaths,
+        type: formData.jenisKerusakan.includes('Banjir') ? 'Banjir' : 
+              formData.jenisKerusakan.includes('Longsor') ? 'Longsor' : 'Lainnya',
+      };
+
+      const report = await createReport(reportData);
+
+      // Success!
+      alert('Laporan berhasil dikirim! Menunggu verifikasi admin.');
+      onSubmit(report);
+      onClose();
+    } catch (error) {
+      console.error('Submit error:', error);
+      setSubmitError(error instanceof Error ? error.message : 'Gagal mengirim laporan');
+      alert('Gagal mengirim laporan. Silakan coba lagi.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -436,7 +456,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           )}
 
           {/* Camera Capture */}
-          {photoMode === 'capture' && formData.fotoLokasi.length < 3 && (
+          {photoMode === 'capture' && capturedPhotos.length < 3 && (
             <div className="space-y-4">
               <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
                 <video
@@ -479,11 +499,11 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   <button
                     type="button"
                     onClick={capturePhoto}
-                    disabled={formData.fotoLokasi.length >= 3}
+                    disabled={capturedPhotos.length >= 3}
                     className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Camera className="w-5 h-5" />
-                    Ambil Foto ({formData.fotoLokasi.length}/3)
+                    Ambil Foto ({capturedPhotos.length}/3)
                   </button>
 
                   <button
@@ -499,7 +519,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                 </div>
               )}
 
-              {formData.fotoLokasi.length >= 3 && (
+              {capturedPhotos.length >= 3 && (
                 <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-lg">
                   <AlertCircle className="w-5 h-5 shrink-0" />
                   <p className="text-sm font-medium">Maksimal 3 foto sudah tercapai</p>
@@ -523,7 +543,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={formData.fotoLokasi.length >= 3}
+                disabled={capturedPhotos.length >= 3}
                 className="w-full p-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:bg-transparent"
               >
                 <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
@@ -534,7 +554,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                 <p className="text-xs text-gray-400 mt-1">Maksimal 2MB per foto</p>
               </button>
 
-              {formData.fotoLokasi.length === 0 && (
+              {capturedPhotos.length === 0 && (
                 <button
                   type="button"
                   onClick={() => setPhotoMode(null)}
@@ -592,17 +612,17 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           )}
 
           {/* Photo Preview */}
-          {formData.fotoLokasi.length > 0 && (
+          {capturedPhotos.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">
-                Foto Lokasi ({formData.fotoLokasi.length}/3)
+                Foto Lokasi ({capturedPhotos.length}/3)
               </h3>
               
               <div className="grid grid-cols-3 gap-3">
-                {formData.fotoLokasi.map((photo, index) => (
+                {capturedPhotos.map((photo, index) => (
                   <div key={index} className="relative group aspect-square">
                     <img
-                      src={photo}
+                      src={photo.dataUrl}
                       alt={`Foto ${index + 1}`}
                       className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
                     />
@@ -715,7 +735,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                     <button
                       key={level}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, tingkatKerusakan: level }))}
+                      onClick={() => setFormData(prev => ({ ...prev, tingkatKerusakan: level as TingkatKerusakan }))}
                       className={`px-4 py-3 rounded-xl font-semibold transition-all ${
                         formData.tingkatKerusakan === level
                           ? level === 'Berat'
@@ -747,18 +767,35 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
               </div>
 
               {/* Submit Button */}
+              {/* Submit Error */}
+              {submitError && (
+                <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <p className="text-sm font-medium">{submitError}</p>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-4 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg"
+                  disabled={isSubmitting}
+                  className="flex-1 px-6 py-4 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-bold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Kirim Laporan
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Mengirim...
+                    </>
+                  ) : (
+                    'Kirim Laporan'
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-6 py-4 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors disabled:opacity-50"
                 >
                   Batal
                 </button>

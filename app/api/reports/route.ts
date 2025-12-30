@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { autoApproveOldReports } from '@/lib/auto-approve';
-import { ReportStatus } from '@prisma/client';
+import { ReportStatus, Prisma } from '@prisma/client';
 
 // GET /api/reports - Get all approved reports (public)
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const includeAll = searchParams.get('includeAll') === 'true';
 
     // Default: hanya tampilkan approved reports untuk public
-    const whereClause: any = includeAll
+    const whereClause: Prisma.ReportWhereInput = includeAll
       ? {}
       : { status: ReportStatus.APPROVED };
 
@@ -40,7 +40,11 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform data untuk compatibility dengan frontend
-    const transformedReports = reports.map((report: any) => ({
+    type ReportWithReviewer = Prisma.ReportGetPayload<{
+      include: { reviewedBy: { select: { id: true; name: true; username: true } } }
+    }>;
+    
+    const transformedReports = reports.map((report: ReportWithReviewer) => ({
       ...report,
       timestamp: getRelativeTime(report.submittedAt),
       verified: report.status === ReportStatus.APPROVED,
