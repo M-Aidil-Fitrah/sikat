@@ -88,10 +88,10 @@ export default function AdminDashboard() {
       const data = await response.json();
       console.log('Loaded data:', data);
       
-      // API returns { success: true, data: [...], stats: {...} }
-      if (data.success && data.data && Array.isArray(data.data)) {
-        console.log(`Successfully loaded ${data.data.length} reports`);
-        setReports(data.data);
+      // API returns { success: true, reports: [...], stats: {...} }
+      if (data.success && data.reports && Array.isArray(data.reports)) {
+        console.log(`Successfully loaded ${data.reports.length} reports`);
+        setReports(data.reports);
       } else {
         console.error('Invalid data format:', data);
         setReports([]);

@@ -52,7 +52,7 @@ async function fetchAPI<T>(
  */
 export async function getReports(): Promise<DisasterData[]> {
   const response = await fetchAPI<DisasterData[]>('/api/reports');
-  return response.data || [];
+  return response.reports || [];
 }
 
 /**

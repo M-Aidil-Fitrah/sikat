@@ -64,7 +64,8 @@ export interface ReportFormInput {
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
-  data?: T;
+  reports?: T; // Consistent key for report arrays
+  data?: T;    // Legacy/alternative key for compatibility
   error?: string;
   count?: number;
   pagination?: {
