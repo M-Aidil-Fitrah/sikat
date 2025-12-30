@@ -2,10 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { ReportStatus, Prisma } from '@prisma/client';
 import { autoApproveOldReports } from '@/lib/auto-approve';
+import { verifyToken } from '@/lib/jwt';
 
 // GET /api/admin/reports - Get all reports with all statuses (admin only)
 export async function GET(request: NextRequest) {
   try {
+    // Verify JWT token
+    const token = request.cookies.get('admin-token')?.value;
+    
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized - No token provided' },
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' },
+        { status: 401 }
+      );
+    }
+
     // Auto-approve old reports
     await autoApproveOldReports();
 

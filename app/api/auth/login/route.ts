@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/prisma';
+import { signToken } from '@/lib/jwt';
 
 // POST /api/auth/login
 export async function POST(request: NextRequest) {
@@ -36,7 +37,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create session (simplified - in production use proper JWT or session management)
+    // Generate JWT token
+    const token = await signToken({
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+      role: user.role,
+    });
+
+    // Create response
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
@@ -49,8 +58,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set cookie
-    response.cookies.set('admin-token', user.id.toString(), {
+    // Set JWT cookie
+    response.cookies.set('admin-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

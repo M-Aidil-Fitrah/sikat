@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { ReportStatus } from '@prisma/client';
+import { verifyToken } from '@/lib/jwt';
 
-// PUT /api/admin/reports/[id]/status - Update report status (approve/reject)
-export async function PUT(
+// PATCH /api/admin/reports/[id]/status - Update report status (approve/reject)
+export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
@@ -17,15 +18,26 @@ export async function PUT(
       );
     }
 
-    const adminToken = request.cookies.get('admin-token');
-    if (!adminToken) {
+    // Verify JWT token
+    const token = request.cookies.get('admin-token')?.value;
+    
+    if (!token) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'Unauthorized - No token provided' },
         { status: 401 }
       );
     }
 
-    const adminId = parseInt(adminToken.value);
+    const payload = await verifyToken(token);
+    
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    const adminId = payload.userId;
 
     const { status, reviewNote } = await request.json();
 

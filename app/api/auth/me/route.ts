@@ -1,22 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { verifyToken } from '@/lib/jwt';
 
 // GET /api/auth/me - Get current logged in user
 export async function GET(request: NextRequest) {
   try {
-    const adminToken = request.cookies.get('admin-token');
+    const token = request.cookies.get('admin-token')?.value;
 
-    if (!adminToken) {
+    if (!token) {
       return NextResponse.json(
         { success: false, error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
-    const userId = parseInt(adminToken.value);
+    const payload = await verifyToken(token);
+
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
     
     const user = await prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: payload.userId },
       select: {
         id: true,
         username: true,
