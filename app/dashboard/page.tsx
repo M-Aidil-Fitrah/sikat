@@ -19,16 +19,29 @@ const MapComponent = dynamic(() => import("../components/MapComponent"), {
   )
 });
 
+const DisasterForm = dynamic(() => import("../components/DisasterForm"), {
+  ssr: false
+});
+
 export default function Dashboard() {
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
-  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [disasters, setDisasters] = useState(disasterData);
+
+  const handleFormSubmit = (data: any) => {
+    const newDisaster = {
+      ...data,
+      id: disasters.length + 1,
+    };
+    setDisasters([newDisaster, ...disasters]);
+    setShowInputForm(false);
+  };
 
   const stats = {
-    totalReports: disasterData.length,
-    banjir: disasterData.filter(d => d.type === 'Banjir').length,
-    longsor: disasterData.filter(d => d.type === 'Longsor').length,
-    verified: disasterData.filter(d => d.verified).length
+    totalReports: disasters.length,
+    banjir: disasters.filter(d => d.type === 'Banjir').length,
+    longsor: disasters.filter(d => d.type === 'Longsor').length,
+    verified: disasters.filter(d => d.verified).length
   };
 
   return (
@@ -81,7 +94,7 @@ export default function Dashboard() {
               </div>
               <div className="flex-1">
                 <div className="font-semibold text-sm">Banjir</div>
-                <div className="text-xs text-blue-600">{disasterData.filter(d => d.type === 'Banjir').length} kejadian</div>
+                <div className="text-xs text-blue-600">{disasters.filter(d => d.type === 'Banjir').length} kejadian</div>
               </div>
             </a>
             <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mt-2">
@@ -90,7 +103,7 @@ export default function Dashboard() {
               </div>
               <div className="flex-1">
                 <div className="font-semibold text-sm">Longsor</div>
-                <div className="text-xs text-amber-600">{disasterData.filter(d => d.type === 'Longsor').length} kejadian</div>
+                <div className="text-xs text-amber-600">{disasters.filter(d => d.type === 'Longsor').length} kejadian</div>
               </div>
             </a>
           </div>
@@ -220,24 +233,24 @@ export default function Dashboard() {
                   <div className="bg-linear-to-r from-red-600 to-orange-600 p-6 text-white">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`w-3 h-3 rounded-full ${
-                        selectedDisaster.tingkatKerusakan === 'Berat' ? 'bg-white' :
-                        selectedDisaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-200' :
+                        selectedDisaster?.tingkatKerusakan === 'Berat' ? 'bg-white' :
+                        selectedDisaster?.tingkatKerusakan === 'Sedang' ? 'bg-amber-200' :
                         'bg-green-200'
                       }`}></span>
-                      <h3 className="font-bold text-lg">{selectedDisaster.type || 'Bencana'}</h3>
+                      <h3 className="font-bold text-lg">{selectedDisaster?.type || 'Bencana'}</h3>
                     </div>
-                    <p className="text-red-100 text-sm">{selectedDisaster.namaObjek}</p>
+                    <p className="text-red-100 text-sm">{selectedDisaster?.namaObjek}</p>
                   </div>
                   
                   <div className="p-6 space-y-4">
                     <div className="bg-gray-50 rounded-xl p-4">
                       <div className="text-xs text-gray-500 font-semibold mb-1">KOORDINAT</div>
-                      <div className="font-mono text-sm text-gray-900">{selectedDisaster.lat.toFixed(6)}, {selectedDisaster.lng.toFixed(6)}</div>
+                      <div className="font-mono text-sm text-gray-900">{selectedDisaster?.lat.toFixed(6)}, {selectedDisaster?.lng.toFixed(6)}</div>
                     </div>
                     
                     <div className="bg-gray-50 rounded-xl p-4">
                       <div className="text-xs text-gray-500 font-semibold mb-1">LOKASI</div>
-                      <div className="text-sm text-gray-900">{selectedDisaster.desaKecamatan}</div>
+                      <div className="text-sm text-gray-900">{selectedDisaster?.desaKecamatan}</div>
                     </div>
 
                     <div className="space-y-3 text-sm">
@@ -245,7 +258,7 @@ export default function Dashboard() {
                         <AlertTriangle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Jenis Kerusakan</div>
-                          <div className="text-gray-600">{selectedDisaster.jenisKerusakan}</div>
+                          <div className="text-gray-600">{selectedDisaster?.jenisKerusakan}</div>
                         </div>
                       </div>
                       
@@ -254,10 +267,10 @@ export default function Dashboard() {
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Tingkat Kerusakan</div>
                           <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                            selectedDisaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
-                            selectedDisaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
+                            selectedDisaster?.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
+                            selectedDisaster?.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
                             'bg-green-100 text-green-700'
-                          }`}>{selectedDisaster.tingkatKerusakan}</div>
+                          }`}>{selectedDisaster?.tingkatKerusakan}</div>
                         </div>
                       </div>
 
@@ -265,7 +278,7 @@ export default function Dashboard() {
                         <Clock className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Waktu</div>
-                          <div className="text-gray-600">{selectedDisaster.timestamp}</div>
+                          <div className="text-gray-600">{selectedDisaster?.timestamp}</div>
                         </div>
                       </div>
 
@@ -273,7 +286,7 @@ export default function Dashboard() {
                         <FileText className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Keterangan Kerusakan</div>
-                          <div className="text-gray-600">{selectedDisaster.keteranganKerusakan}</div>
+                          <div className="text-gray-600">{selectedDisaster?.keteranganKerusakan}</div>
                         </div>
                       </div>
 
@@ -281,7 +294,7 @@ export default function Dashboard() {
                         <User className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Pelapor</div>
-                          <div className="text-gray-600">{selectedDisaster.namaPelapor}</div>
+                          <div className="text-gray-600">{selectedDisaster?.namaPelapor}</div>
                         </div>
                       </div>
 
@@ -289,7 +302,7 @@ export default function Dashboard() {
                         <CheckCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Status</div>
-                          {selectedDisaster.verified ? (
+                          {selectedDisaster?.verified ? (
                             <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
                               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -333,7 +346,7 @@ export default function Dashboard() {
                   <h3 className="font-bold text-gray-900">Laporan Terkini</h3>
                 </div>
                 <div className="divide-y divide-gray-100 max-h-75 overflow-y-auto">
-                  {disasterData.slice(0, 5).map((disaster) => (
+                  {disasters.slice(0, 5).map((disaster) => (
                     <button
                       key={disaster.id}
                       onClick={() => setSelectedDisaster(disaster)}
@@ -359,6 +372,14 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {/* Disaster Form Modal */}
+      {showInputForm && (
+        <DisasterForm
+          onClose={() => setShowInputForm(false)}
+          onSubmit={handleFormSubmit}
+        />
+      )}
     </div>
   );
 }

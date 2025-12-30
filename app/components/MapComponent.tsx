@@ -351,7 +351,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect }: Map
           }}
         >
           <Popup>
-            <div className="p-2 min-w-[200px]">
+            <div className="p-2 min-w-50">
               <div className="flex items-center gap-2 mb-2">
                 <span className={`w-3 h-3 rounded-full ${
                   disaster.tingkatKerusakan === 'Berat' ? 'bg-red-500' :
