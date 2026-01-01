@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { ReportStatus } from '@prisma/client';
+import { getReportByIdWithCoordinates } from '@/lib/postgis-helper';
 
 // GET /api/reports/[id] - Get single report
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reportId = parseInt(params.id);
+    const { id } = await params;
+    const reportId = parseInt(id);
 
     if (isNaN(reportId)) {
       return NextResponse.json(
@@ -17,18 +19,7 @@ export async function GET(
       );
     }
 
-    const report = await prisma.report.findUnique({
-      where: { id: reportId },
-      include: {
-        reviewedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-          },
-        },
-      },
-    });
+    const report = await getReportByIdWithCoordinates(reportId);
 
     if (!report) {
       return NextResponse.json(
@@ -37,9 +28,25 @@ export async function GET(
       );
     }
 
+    // Get reviewedBy data
+    let reviewedBy = null;
+    if (report.reviewedById) {
+      reviewedBy = await prisma.user.findUnique({
+        where: { id: report.reviewedById },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+        },
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      data: report,
+      data: {
+        ...report,
+        reviewedBy,
+      },
     });
   } catch (error) {
     console.error('Error fetching report:', error);
@@ -53,10 +60,11 @@ export async function GET(
 // PUT /api/reports/[id] - Update report (for future use)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reportId = parseInt(params.id);
+    const { id } = await params;
+    const reportId = parseInt(id);
 
     if (isNaN(reportId)) {
       return NextResponse.json(
@@ -66,11 +74,32 @@ export async function PUT(
     }
 
     const body = await request.json();
+    const { lat, lng, ...otherData } = body;
 
-    const report = await prisma.report.update({
-      where: { id: reportId },
-      data: body,
-    });
+    // Update dengan atau tanpa location
+    if (lat !== undefined && lng !== undefined) {
+      const { Prisma } = await import('@prisma/client');
+      
+      await prisma.$executeRaw(
+        Prisma.sql`
+          UPDATE reports
+          SET 
+            location = ST_SetSRID(ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)}), 4326),
+            "updatedAt" = NOW()
+          WHERE id = ${reportId}
+        `
+      );
+    }
+
+    // Update fields lainnya jika ada
+    if (Object.keys(otherData).length > 0) {
+      await prisma.report.update({
+        where: { id: reportId },
+        data: otherData,
+      });
+    }
+
+    const report = await getReportByIdWithCoordinates(reportId);
 
     return NextResponse.json({
       success: true,
@@ -88,10 +117,11 @@ export async function PUT(
 // DELETE /api/reports/[id] - Delete report
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reportId = parseInt(params.id);
+    const { id } = await params;
+    const reportId = parseInt(id);
 
     if (isNaN(reportId)) {
       return NextResponse.json(

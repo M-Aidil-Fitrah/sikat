@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { ReportStatus, Prisma } from '@prisma/client';
+import { ReportStatus } from '@prisma/client';
 import { autoApproveOldReports } from '@/lib/auto-approve';
 import { verifyToken } from '@/lib/jwt';
+import { getReportsWithCoordinates } from '@/lib/postgis-helper';
 
 // GET /api/admin/reports - Get all reports with all statuses (admin only)
 export async function GET(request: NextRequest) {
@@ -33,35 +34,38 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
+
+    // Get reports dengan koordinat dari PostGIS
+    const allReports = await getReportsWithCoordinates(
+      status && Object.values(ReportStatus).includes(status as ReportStatus)
+        ? { status }
+        : undefined
+    );
+
+    // Pagination
     const skip = (page - 1) * limit;
+    const paginatedReports = allReports.slice(skip, skip + limit);
+    const totalCount = allReports.length;
 
-    const whereClause: Prisma.ReportWhereInput = {};
+    // Get reviewedBy data untuk setiap report
+    const reportIds = paginatedReports
+      .map(r => r.reviewedById)
+      .filter((id): id is number => id !== null);
+    
+    const users = reportIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: reportIds } },
+          select: { id: true, name: true, username: true },
+        })
+      : [];
 
-    // Filter by status
-    if (status && Object.values(ReportStatus).includes(status as ReportStatus)) {
-      whereClause.status = status as ReportStatus;
-    }
+    const usersMap = new Map(users.map(u => [u.id, u]));
 
-    const [reports, totalCount] = await Promise.all([
-      prisma.report.findMany({
-        where: whereClause,
-        include: {
-          reviewedBy: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-            },
-          },
-        },
-        orderBy: {
-          submittedAt: 'desc',
-        },
-        skip,
-        take: limit,
-      }),
-      prisma.report.count({ where: whereClause }),
-    ]);
+    // Transform data dengan reviewedBy
+    const transformedReports = paginatedReports.map((report) => ({
+      ...report,
+      reviewedBy: report.reviewedById ? usersMap.get(report.reviewedById) || null : null,
+    }));
 
     // Get counts by status
     const [pendingCount, approvedCount, rejectedCount] = await Promise.all([
@@ -72,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      reports: reports,
+      reports: transformedReports,
       pagination: {
         page,
         limit,

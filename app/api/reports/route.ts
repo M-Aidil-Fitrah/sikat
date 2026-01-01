@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { autoApproveOldReports } from '@/lib/auto-approve';
-import { ReportStatus, Prisma } from '@prisma/client';
+import { ReportStatus } from '@prisma/client';
+import { getReportsWithCoordinates } from '@/lib/postgis-helper';
 
 // GET /api/reports - Get all approved reports (public)
 export async function GET(request: NextRequest) {
@@ -14,39 +15,33 @@ export async function GET(request: NextRequest) {
     const includeAll = searchParams.get('includeAll') === 'true';
 
     // Default: hanya tampilkan approved reports untuk public
-    const whereClause: Prisma.ReportWhereInput = includeAll
-      ? {}
-      : { status: ReportStatus.APPROVED };
+    const statusFilter = includeAll
+      ? undefined
+      : status && Object.values(ReportStatus).includes(status as ReportStatus)
+      ? status
+      : ReportStatus.APPROVED;
 
-    // Jika ada filter status spesifik
-    if (status && Object.values(ReportStatus).includes(status as ReportStatus)) {
-      whereClause.status = status as ReportStatus;
-    }
+    // Get reports dengan koordinat dari PostGIS
+    const reports = await getReportsWithCoordinates(
+      statusFilter ? { status: statusFilter } : undefined
+    );
 
-    const reports = await prisma.report.findMany({
-      where: whereClause,
-      include: {
-        reviewedBy: {
-          select: {
-            id: true,
-            name: true,
-            username: true,
-          },
-        },
-      },
-      orderBy: {
-        submittedAt: 'desc',
-      },
-    });
+    // Get reviewedBy data untuk setiap report
+    const reportIds = reports.map(r => r.reviewedById).filter((id): id is number => id !== null);
+    const users = reportIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: reportIds } },
+          select: { id: true, name: true, username: true },
+        })
+      : [];
+
+    const usersMap = new Map(users.map(u => [u.id, u]));
 
     // Transform data untuk compatibility dengan frontend
-    type ReportWithReviewer = Prisma.ReportGetPayload<{
-      include: { reviewedBy: { select: { id: true; name: true; username: true } } }
-    }>;
-    
-    const transformedReports = reports.map((report: ReportWithReviewer) => ({
+    const transformedReports = reports.map((report) => ({
       ...report,
       timestamp: getRelativeTime(report.submittedAt),
+      reviewedBy: report.reviewedById ? usersMap.get(report.reviewedById) || null : null,
     }));
 
     return NextResponse.json({
@@ -98,27 +93,93 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new report with PENDING status
-    const report = await prisma.report.create({
-      data: {
-        lat: parseFloat(lat),
-        lng: parseFloat(lng),
-        namaPelapor,
-        kontak,
-        desaKecamatan,
-        namaObjek,
-        jenisKerusakan,
-        tingkatKerusakan,
-        keteranganKerusakan,
-        fotoLokasi,
-        status: ReportStatus.PENDING,
-      },
-    });
+    // Create new report with PostGIS geometry
+    const { Prisma } = await import('@prisma/client');
+    
+    await prisma.$executeRaw(
+      Prisma.sql`
+        INSERT INTO reports (
+          location,
+          "namaPelapor",
+          kontak,
+          "desaKecamatan",
+          "namaObjek",
+          "jenisKerusakan",
+          "tingkatKerusakan",
+          "keteranganKerusakan",
+          "fotoLokasi",
+          status,
+          "autoApproved",
+          "submittedAt",
+          "createdAt",
+          "updatedAt"
+        ) VALUES (
+          ST_SetSRID(ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)}), 4326),
+          ${namaPelapor},
+          ${kontak},
+          ${desaKecamatan},
+          ${namaObjek},
+          ${jenisKerusakan},
+          ${tingkatKerusakan}::"TingkatKerusakan",
+          ${keteranganKerusakan},
+          ${fotoLokasi}::text[],
+          'PENDING'::"ReportStatus",
+          false,
+          NOW(),
+          NOW(),
+          NOW()
+        )
+      `
+    );
+
+    // Get created report
+    const reports = await prisma.$queryRaw<Array<{ id: number }>>(
+      Prisma.sql`SELECT id FROM reports ORDER BY id DESC LIMIT 1`
+    );
+
+    const createdReport = await prisma.$queryRaw<Array<{
+      id: number;
+      lat: number;
+      lng: number;
+      namaPelapor: string;
+      kontak: string;
+      desaKecamatan: string;
+      namaObjek: string;
+      jenisKerusakan: string;
+      tingkatKerusakan: string;
+      fotoLokasi: string[];
+      keteranganKerusakan: string;
+      status: string;
+      submittedAt: Date;
+      createdAt: Date;
+      updatedAt: Date;
+    }>>(
+      Prisma.sql`
+        SELECT 
+          id,
+          ST_Y(location::geometry) as lat,
+          ST_X(location::geometry) as lng,
+          "namaPelapor",
+          kontak,
+          "desaKecamatan",
+          "namaObjek",
+          "jenisKerusakan",
+          "tingkatKerusakan"::text as "tingkatKerusakan",
+          "fotoLokasi",
+          "keteranganKerusakan",
+          status::text as status,
+          "submittedAt",
+          "createdAt",
+          "updatedAt"
+        FROM reports
+        WHERE id = ${reports[0].id}
+      `
+    );
 
     return NextResponse.json({
       success: true,
       message: 'Laporan berhasil dikirim dan menunggu verifikasi admin',
-      data: report,
+      data: createdReport[0],
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating report:', error);
@@ -130,17 +191,30 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper functions
-function getRelativeTime(date: Date): string {
+function getRelativeTime(date: Date | string): string {
   const now = new Date();
-  const diffInMs = now.getTime() - new Date(date).getTime();
+  const submittedDate = new Date(date);
+  
+  // Ensure we're comparing in the same timezone
+  const diffInMs = now.getTime() - submittedDate.getTime();
+  
+  // Handle future dates (timezone issues)
+  if (diffInMs < 0) {
+    return 'baru saja';
+  }
+  
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInHours / 24);
 
-  if (diffInHours < 1) {
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  if (diffInMinutes < 1) {
+    return 'baru saja';
+  } else if (diffInMinutes < 60) {
     return `${diffInMinutes} menit lalu`;
   } else if (diffInHours < 24) {
     return `${diffInHours} jam lalu`;
+  } else if (diffInDays === 1) {
+    return 'kemarin';
   } else {
     return `${diffInDays} hari lalu`;
   }
