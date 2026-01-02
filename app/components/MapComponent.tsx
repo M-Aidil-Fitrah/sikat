@@ -26,19 +26,12 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Custom marker icons based on tingkatKerusakan and jenisKerusakan
+// Custom marker icons based on tingkatKerusakan
 const createCustomIcon = (tingkatKerusakan: string, jenisKerusakan: string) => {
   const color = tingkatKerusakan === 'Berat' ? '#dc2626' : tingkatKerusakan === 'Sedang' ? '#f59e0b' : '#10b981';
   
-  let iconSvg = '';
-  const jenisLower = jenisKerusakan.toLowerCase();
-  if (jenisLower.includes('banjir')) {
-    iconSvg = renderToString(<Droplets className="w-5 h-5" />);
-  } else if (jenisLower.includes('longsor')) {
-    iconSvg = renderToString(<Mountain className="w-5 h-5" />);
-  } else {
-    iconSvg = renderToString(<AlertTriangle className="w-5 h-5" />);
-  }
+  // Gunakan AlertTriangle untuk semua jenis kerusakan
+  const iconSvg = renderToString(<AlertTriangle className="w-5 h-5" />);
   
   return L.divIcon({
     className: 'custom-marker',
@@ -156,55 +149,77 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
             click: () => onDisasterSelect(disaster)
           }}
         >
-          <Popup>
-            <div className="p-2 min-w-50">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`w-3 h-3 rounded-full ${
-                  disaster.tingkatKerusakan === 'Berat' ? 'bg-red-500' :
-                  disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-500' :
-                  'bg-green-500'
-                }`}></span>
-                <h3 className="font-bold text-gray-900">{disaster.jenisKerusakan}</h3>
+          <Popup maxWidth={320}>
+            <div className="min-w-[280px]">
+              {/* Header dengan severity badge */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-bold text-gray-900 text-base">{disaster.jenisKerusakan}</h3>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    disaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
+                    disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {disaster.tingkatKerusakan}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {disaster.timestamp}
+                </p>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-                  <p className="text-sm text-gray-600">{disaster.namaObjek}</p>
+
+              {/* Foto jika ada */}
+              {disaster.fotoLokasi && disaster.fotoLokasi.length > 0 && (
+                <div className="mb-3">
+                  <img 
+                    src={disaster.fotoLokasi[0]} 
+                    alt="Foto lokasi" 
+                    className="w-full h-40 object-cover rounded-lg"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  {disaster.fotoLokasi.length > 1 && (
+                    <p className="text-xs text-gray-500 mt-1">+{disaster.fotoLokasi.length - 1} foto lainnya</p>
+                  )}
                 </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-                  <p className="text-sm text-gray-600">{disaster.desaKecamatan}</p>
+              )}
+
+              {/* Info lokasi */}
+              <div className="space-y-2 mb-3">
+                <div className="flex gap-2">
+                  <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-gray-900">{disaster.namaObjek}</p>
+                    <p className="text-gray-600">{disaster.desaKecamatan}</p>
+                  </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-                  <p className="text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      disaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
-                      disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
-                      'bg-green-100 text-green-700'
-                    }`}>
-                      {disaster.tingkatKerusakan}
-                    </span>
-                  </p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Clock className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-                  <p className="text-xs text-gray-500">{disaster.timestamp}</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <FileText className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
-                  <p className="text-sm text-gray-700">{disaster.keteranganKerusakan}</p>
-                </div>
-              </div>
-              <div className="mt-2 pt-2 border-t border-gray-200">
-                <div className="flex items-center gap-1 mb-1">
-                  <User className="w-3 h-3 text-gray-400" />
-                  <span className="text-xs text-gray-600">{disaster.namaPelapor}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-500">📞 {disaster.kontak}</span>
+                
+                <div className="flex gap-2">
+                  <FileText className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <p className="text-sm text-gray-700 line-clamp-2">{disaster.keteranganKerusakan}</p>
                 </div>
               </div>
+
+              {/* Pelapor info */}
+              <div className="pt-3 border-t border-gray-200 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm text-gray-700">{disaster.namaPelapor}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">📞 {disaster.kontak}</span>
+                </div>
+              </div>
+
+              {/* Tombol detail */}
+              <button
+                onClick={() => onDisasterSelect(disaster)}
+                className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+              >
+                Lihat Detail Lengkap
+              </button>
             </div>
           </Popup>
         </Marker>
