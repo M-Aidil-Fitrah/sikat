@@ -52,11 +52,37 @@ export default function AdminDashboard() {
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Load reports
+  // Check authentication on mount
   useEffect(() => {
-    loadReports();
+    checkAuth();
   }, []);
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me');
+      
+      if (response.status === 401) {
+        router.push('/superuser');
+        return;
+      }
+      
+      if (response.ok) {
+        setIsAuthenticated(true);
+        // Load reports after auth check succeeds
+        loadReports();
+      } else {
+        router.push('/superuser');
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      router.push('/superuser');
+    } finally {
+      setIsCheckingAuth(false);
+    }
+  };
 
   // Filter reports berdasarkan status
   useEffect(() => {
@@ -162,6 +188,23 @@ export default function AdminDashboard() {
     approved: reports.filter(r => r.status === 'APPROVED').length,
     rejected: reports.filter(r => r.status === 'REJECTED').length,
   };
+
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Memeriksa autentikasi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   if (isLoading) {
     return (

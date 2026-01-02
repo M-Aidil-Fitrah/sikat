@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, FormEvent, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 
 // Force dynamic rendering
@@ -9,12 +9,21 @@ export const dynamic = 'force-dynamic';
 
 export default function SuperUserLogin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check for unauthorized error from URL params
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'unauthorized') {
+      setError('Silakan login terlebih dahulu untuk mengakses halaman tersebut');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
