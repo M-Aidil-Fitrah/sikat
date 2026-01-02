@@ -7,6 +7,18 @@ import type { DisasterData, Report } from "@/lib/types";
 import { getReports } from "@/lib/api";
 import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
 
+// Format detailed timestamp
+const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
+  const date = new Date(dateString);
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes})`;
+};
+
 // Dynamic import to avoid SSR issues with Leaflet
 const MapComponent = dynamic(() => import("../components/MapComponent"), {
   ssr: false,
@@ -28,6 +40,7 @@ export default function Dashboard() {
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
   const [showDetailOverlay, setShowDetailOverlay] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
   const [disasters, setDisasters] = useState<DisasterData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -261,6 +274,30 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="p-6 space-y-4">
+                    {/* Foto Lokasi */}
+                    {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 0 && (
+                      <div>
+                        <div className="text-xs text-gray-500 font-semibold mb-2">FOTO LOKASI</div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {selectedDisaster.fotoLokasi.slice(0, 4).map((foto, index) => (
+                            <img 
+                              key={index}
+                              src={foto} 
+                              alt={`Foto ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => setSelectedPhotoUrl(foto)}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200x150?text=Foto+Tidak+Tersedia';
+                              }}
+                            />
+                          ))}
+                        </div>
+                        {selectedDisaster.fotoLokasi.length > 4 && (
+                          <p className="text-xs text-gray-500 mt-2">+{selectedDisaster.fotoLokasi.length - 4} foto lainnya</p>
+                        )}
+                      </div>
+                    )}
+
                     <div className="bg-gray-50 rounded-xl p-4">
                       <div className="text-xs text-gray-500 font-semibold mb-1">KOORDINAT</div>
                       <div className="font-mono text-sm text-gray-900">{selectedDisaster?.lat.toFixed(6)}, {selectedDisaster?.lng.toFixed(6)}</div>
@@ -296,7 +333,9 @@ export default function Dashboard() {
                         <Clock className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">Waktu</div>
-                          <div className="text-gray-600">{selectedDisaster?.timestamp}</div>
+                          <div className="text-gray-600 text-sm">
+                            {formatDetailedTime(selectedDisaster.timestamp, selectedDisaster.submittedAt)}
+                          </div>
                         </div>
                       </div>
 
@@ -451,7 +490,8 @@ export default function Dashboard() {
                         key={index}
                         src={foto} 
                         alt={`Foto ${index + 1}`}
-                        className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                        className="w-full h-64 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => setSelectedPhotoUrl(foto)}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Foto+Tidak+Tersedia';
                         }}
@@ -484,7 +524,9 @@ export default function Dashboard() {
 
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="text-xs text-gray-500 font-semibold mb-1">WAKTU LAPORAN</div>
-                  <div className="text-sm text-gray-900">{selectedDisaster.timestamp}</div>
+                  <div className="text-sm text-gray-900">
+                    {formatDetailedTime(selectedDisaster.timestamp, selectedDisaster.submittedAt)}
+                  </div>
                 </div>
               </div>
 
@@ -543,6 +585,30 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {selectedPhotoUrl && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
+          style={{ zIndex: 100 }}
+          onClick={() => setSelectedPhotoUrl(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full w-12 h-12 flex items-center justify-center transition-colors"
+            onClick={() => setSelectedPhotoUrl(null)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img 
+            src={selectedPhotoUrl} 
+            alt="Full view" 
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
     </div>

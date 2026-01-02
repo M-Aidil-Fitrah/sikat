@@ -9,6 +9,18 @@ import { Droplets, Mountain, MapPin, Clock, AlertTriangle, FileText, User, Check
 import { renderToString } from 'react-dom/server';
 import type { DisasterData } from '@/lib/types';
 
+// Format detailed timestamp
+const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
+  const date = new Date(dateString);
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes})`;
+};
+
 // Extend HTMLElement to include _leaflet_id
 declare global {
   interface HTMLElement {
@@ -94,6 +106,7 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
   const [isMounted, setIsMounted] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [mapId] = useState(() => `map-${Math.random().toString(36).substr(2, 9)}`);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -149,13 +162,13 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
             click: () => onDisasterSelect(disaster)
           }}
         >
-          <Popup maxWidth={320}>
-            <div className="min-w-[280px]">
+          <Popup maxWidth={340}>
+            <div style={{ minWidth: '300px' }}>
               {/* Header dengan severity badge */}
               <div className="mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-bold text-gray-900 text-base">{disaster.jenisKerusakan}</h3>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="font-bold text-gray-900 text-base flex-1">{disaster.jenisKerusakan}</h3>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${
                     disaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
                     disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
                     'bg-green-100 text-green-700'
@@ -163,10 +176,12 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
                     {disaster.tingkatKerusakan}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {disaster.timestamp}
-                </p>
+                <div className="flex items-start gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {formatDetailedTime(disaster.timestamp, disaster.submittedAt)}
+                  </p>
+                </div>
               </div>
 
               {/* Foto jika ada */}
@@ -175,48 +190,50 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
                   <img 
                     src={disaster.fotoLokasi[0]} 
                     alt="Foto lokasi" 
-                    className="w-full h-40 object-cover rounded-lg"
+                    className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => setSelectedPhotoUrl(disaster.fotoLokasi[0])}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                   />
                   {disaster.fotoLokasi.length > 1 && (
-                    <p className="text-xs text-gray-500 mt-1">+{disaster.fotoLokasi.length - 1} foto lainnya</p>
+                    <p className="text-xs text-gray-500 mt-1.5">+{disaster.fotoLokasi.length - 1} foto lainnya</p>
                   )}
                 </div>
               )}
 
               {/* Info lokasi */}
-              <div className="space-y-2 mb-3">
-                <div className="flex gap-2">
+              <div className="space-y-2.5 mb-3">
+                <div className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                  <div className="text-sm">
+                  <div className="text-sm flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{disaster.namaObjek}</p>
-                    <p className="text-gray-600">{disaster.desaKecamatan}</p>
+                    <p className="text-gray-600 text-xs mt-0.5">{disaster.desaKecamatan}</p>
                   </div>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex items-start gap-2.5">
                   <FileText className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                  <p className="text-sm text-gray-700 line-clamp-2">{disaster.keteranganKerusakan}</p>
+                  <p className="text-sm text-gray-700 line-clamp-2 flex-1 min-w-0">{disaster.keteranganKerusakan}</p>
                 </div>
               </div>
 
               {/* Pelapor info */}
-              <div className="pt-3 border-t border-gray-200 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-700">{disaster.namaPelapor}</span>
+              <div className="pt-3 border-t border-gray-200 space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <User className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-700 flex-1 min-w-0">{disaster.namaPelapor}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-700">📞 {disaster.kontak}</span>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-gray-400 shrink-0">📞</span>
+                  <span className="text-sm text-gray-700 flex-1 min-w-0">{disaster.kontak}</span>
                 </div>
               </div>
 
               {/* Tombol detail */}
               <button
                 onClick={() => onDisasterSelect(disaster)}
-                className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
+                className="w-full mt-3 bg-red-600 hover:bg-red-700 text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors"
               >
                 Lihat Detail Lengkap
               </button>
@@ -242,6 +259,30 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, disas
 
       <MapEvents selectedDisaster={selectedDisaster} onDisasterSelect={onDisasterSelect} />
     </MapContainer>
+
+    {/* Photo Viewer Modal */}
+    {selectedPhotoUrl && (
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
+        style={{ zIndex: 9999 }}
+        onClick={() => setSelectedPhotoUrl(null)}
+      >
+        <button 
+          className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+          onClick={() => setSelectedPhotoUrl(null)}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <img 
+          src={selectedPhotoUrl} 
+          alt="Full view" 
+          className="max-w-full max-h-full object-contain rounded-lg"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    )}
     </div>
   );
 }
