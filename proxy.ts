@@ -8,7 +8,7 @@ const protectedRoutes = ['/superuser/dashboard', '/api/admin'];
 // Routes yang hanya untuk user yang belum login
 const authRoutes = ['/superuser'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Check if route is protected (admin routes)
@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configure which routes to run middleware on
+// Configure which routes to run proxy on
 export const config = {
   matcher: [
     '/superuser/:path*',
