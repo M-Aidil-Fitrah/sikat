@@ -736,7 +736,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Jenis Kerusakan / Kebutuhan *
+                  Jenis Kerusakan*
                 </label>
                 <input
                   type="text"
@@ -776,7 +776,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Keterangan Kerusakan *
+                  Keterangan Kerusakan & Kebutuhan *
                 </label>
                 <textarea
                   required

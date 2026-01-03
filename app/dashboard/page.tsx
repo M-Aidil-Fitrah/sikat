@@ -232,18 +232,9 @@ export default function Dashboard() {
             {/* Map */}
             <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-fit">
               <div className="p-6 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Banjir & Longsor</h2>
-                    <p className="text-sm text-gray-500 mt-1">Wilayah Sumatra - Monitoring Real-time</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                      </svg>
-                    </button>
-                  </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Banjir & Longsor</h2>
+                  <p className="text-sm text-gray-500 mt-1">Wilayah Sumatra - Monitoring Real-time</p>
                 </div>
               </div>
               <div className="h-150 relative overflow-hidden">
@@ -251,6 +242,10 @@ export default function Dashboard() {
                   key="dashboard-map"
                   selectedDisaster={selectedDisaster} 
                   onDisasterSelect={setSelectedDisaster}
+                  onOpenDetailOverlay={(disaster) => {
+                    setSelectedDisaster(disaster);
+                    setShowDetailOverlay(true);
+                  }}
                   disasters={disasters}
                 />
               </div>
@@ -268,9 +263,9 @@ export default function Dashboard() {
                         selectedDisaster?.tingkatKerusakan === 'Sedang' ? 'bg-amber-200' :
                         'bg-green-200'
                       }`}></span>
-                      <h3 className="font-bold text-lg">{selectedDisaster?.jenisKerusakan}</h3>
+                      <h3 className="font-bold text-lg">{selectedDisaster?.namaObjek}</h3>
                     </div>
-                    <p className="text-red-100 text-sm">{selectedDisaster?.namaObjek}</p>
+                    <p className="text-red-100 text-sm">Tingkat Kerusakan: {selectedDisaster?.tingkatKerusakan}</p>
                   </div>
                   
                   <div className="p-6 space-y-4">
