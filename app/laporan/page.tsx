@@ -18,7 +18,8 @@ import {
   ChevronDown,
   Clock,
   Building2,
-  FileText as FileIcon
+  FileText as FileIcon,
+  Menu
 } from "lucide-react";
 
 // Convert UTC to WIB (GMT+7)
@@ -57,6 +58,12 @@ function LaporanContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
   
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
@@ -209,50 +216,65 @@ function LaporanContent() {
 
   return (
     <div className="min-h-screen bg-gray-50/80 flex">
-      <Sidebar />
+      <Sidebar 
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
 
       {/* Main Content */}
       <main 
-        className={`flex-1 min-h-screen transition-all duration-300 ${
+        className={`flex-1 min-h-screen transition-all duration-300 lg:${
           sidebarCollapsed ? "ml-20" : "ml-72"
         }`}
       >
         {/* Header */}
-        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/80 px-8 py-6 sticky top-0 z-20">
+        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/80 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-20">
           <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-start gap-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Daftar Laporan</h1>
-                <p className="text-gray-500 mt-1 text-sm">
-                  Laporan bencana yang telah diverifikasi
-                </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Daftar Laporan</h1>
+                  <p className="text-gray-500 mt-1 text-sm">
+                    Laporan bencana yang telah diverifikasi
+                  </p>
+                </div>
+                {/* Hamburger Menu - Mobile Only */}
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  aria-label="Toggle menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
               </div>
-              <button 
-                onClick={loadReports}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all shadow-sm font-medium text-sm"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">{isLoading ? "Memuat..." : "Refresh"}</span>
-              </button>
+              <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <button 
+                  onClick={loadReports}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 transition-all shadow-sm font-medium text-sm w-full sm:w-auto justify-center"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                  <span>{isLoading ? "Memuat..." : "Refresh"}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             {/* Search & Filters Bar */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm mb-6 overflow-visible">
-              <div className="p-4 flex items-center gap-4">
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-sm mb-4 sm:mb-6 overflow-visible">
+              <div className="p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
                 {/* Search */}
                 <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Cari laporan berdasarkan nama, lokasi, atau deskripsi..."
+                    placeholder="Cari laporan..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:bg-white transition-all placeholder:text-gray-400"
+                    className="w-full pl-9 sm:pl-11 pr-4 py-2.5 sm:py-3 bg-gray-50 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:bg-white transition-all placeholder:text-gray-400"
                   />
                   {searchQuery && (
                     <button
@@ -413,12 +435,12 @@ function LaporanContent() {
                     return (
                       <div
                         key={report.id}
-                        className="group bg-white rounded-2xl border border-gray-200/80 hover:border-gray-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
+                        className="group bg-white rounded-xl sm:rounded-2xl border border-gray-200/80 hover:border-gray-300 hover:shadow-lg transition-all duration-300 overflow-hidden"
                       >
-                        <div className="flex">
+                        <div className="flex flex-col sm:flex-row">
                           {/* Image Section */}
                           {report.fotoLokasi && report.fotoLokasi.length > 0 ? (
-                            <div className="w-48 h-40 relative shrink-0 overflow-hidden bg-gray-100">
+                            <div className="w-full sm:w-48 h-32 sm:h-40 relative shrink-0 overflow-hidden bg-gray-100">
                               <img
                                 src={report.fotoLokasi[0]}
                                 alt={report.namaObjek}
@@ -436,13 +458,13 @@ function LaporanContent() {
                               <div className={`absolute top-3 left-3 w-3 h-3 ${colors.dot} rounded-full ring-2 ring-white shadow-lg`}></div>
                             </div>
                           ) : (
-                            <div className="w-48 h-40 bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0">
-                              <Building2 className="w-10 h-10 text-gray-300" />
+                            <div className="w-full sm:w-48 h-32 sm:h-40 bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center shrink-0">
+                              <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300" />
                             </div>
                           )}
 
                           {/* Content Section */}
-                          <div className="flex-1 p-5 flex flex-col">
+                          <div className="flex-1 p-3 sm:p-5 flex flex-col">
                             <div className="flex items-start justify-between gap-4 mb-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
@@ -451,32 +473,32 @@ function LaporanContent() {
                                   </span>
                                   <span className="text-xs text-gray-400">{report.timestamp}</span>
                                 </div>
-                                <h3 className="font-bold text-gray-900 text-lg truncate group-hover:text-red-600 transition-colors">
+                                <h3 className="font-bold text-gray-900 text-base sm:text-lg truncate group-hover:text-red-600 transition-colors">
                                   {report.namaObjek}
                                 </h3>
                               </div>
                             </div>
 
-                            <div className="space-y-2 flex-1">
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                            <div className="space-y-1.5 sm:space-y-2 flex-1">
+                              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                                <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
                                 <span className="truncate">{report.desaKecamatan}</span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <AlertTriangle className="w-4 h-4 shrink-0 text-gray-400" />
+                              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                                <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 shrink-0 text-gray-400" />
                                 <span className="truncate">{report.jenisKerusakan}</span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <User className="w-4 h-4 text-gray-400 shrink-0" />
+                              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
+                                <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
                                 <span className="truncate">{report.namaPelapor}</span>
                               </div>
                             </div>
 
                             {/* Actions */}
-                            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
                               <button
                                 onClick={() => setSelectedReport(report)}
-                                className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                               >
                                 <Eye className="w-4 h-4" />
                                 Detail

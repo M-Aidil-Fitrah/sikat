@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { DisasterData } from "@/lib/types";
 import { getReports } from "@/lib/api";
-import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
+import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus, Menu } from "lucide-react";
 import Sidebar from "@/app/components/Sidebar";
 
 // Convert UTC to WIB (GMT+7)
@@ -55,6 +55,14 @@ function DashboardContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+
+  // Handle sidebar collapsed state from localStorage
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   // Load sidebar state
@@ -135,31 +143,45 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar 
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
 
       {/* Main Content */}
-      <main className={`flex-1 overflow-y-auto min-h-screen transition-all duration-300 ${sidebarCollapsed ? "ml-20" : "ml-72"}`}>
+      <main className={`flex-1 overflow-y-auto min-h-screen transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}>
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard Kebencanaan</h1>
-              <p className="text-gray-500 mt-1">Pemantauan Bencana Banjir Sumatra </p>
+        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-20">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Kebencanaan</h1>
+                <p className="text-gray-500 mt-1 text-sm">Pemantauan Bencana Banjir Sumatra </p>
+              </div>
+              {/* Hamburger Menu - Mobile Only */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                aria-label="Toggle menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
               <button 
                 onClick={loadDisasters}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm"
+                className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm text-sm flex-1 sm:flex-initial justify-center"
                 disabled={isLoading}
               >
-                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? 'Memuat...' : 'Refresh'}
+                <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'Memuat...' : 'Refresh'}</span>
               </button>
               <button 
                 onClick={() => setShowInputForm(!showInputForm)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30">
-                <Plus className="w-5 h-5" />
-                Tambah Laporan
+                className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30 text-sm flex-1 sm:flex-initial justify-center">
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Tambah Laporan</span>
+                <span className="sm:hidden">Tambah</span>
               </button>
             </div>
           </div>
@@ -190,32 +212,32 @@ function DashboardContent() {
           )}
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-linear-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white shadow-xl shadow-red-500/30">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+            <div className="bg-linear-to-br from-red-500 to-red-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-xl shadow-red-500/30">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <span className="text-sm font-medium bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm">Live</span>
+                <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full backdrop-blur-sm">Live</span>
               </div>
-              <div className="text-4xl font-bold mb-2">{stats.totalReports}</div>
-              <div className="text-red-100 font-medium">Total Laporan</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">{stats.totalReports}</div>
+              <div className="text-red-100 font-medium text-xs sm:text-sm lg:text-base">Total Laporan</div>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Berat').length}</div>
-              <div className="text-gray-500 font-medium">Kerusakan Berat</div>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Berat').length}</div>
+              <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Kerusakan Berat</div>
             </div>
 
             <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -244,16 +266,16 @@ function DashboardContent() {
           </div>
 
           {/* Map and Detail Section */}
-          <div className="grid grid-cols-3 gap-6 items-start">
-            {/* Map */}
-            <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-fit">
-              <div className="p-6 border-b border-gray-100">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 items-start">
+            {/* Map - Show second on mobile, first on desktop */}
+            <div className="xl:col-span-2 xl:order-1 bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-fit relative z-10">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Laporan Bencana Banjir Sumatra</h2>
-                  <p className="text-sm text-gray-500 mt-1">Monitoring Real-time</p>
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900">Peta Sebaran Laporan Bencana Banjir Sumatra</h2>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1">Monitoring Real-time</p>
                 </div>
               </div>
-              <div className="h-150 relative overflow-hidden">
+              <div className="h-64 sm:h-96 lg:h-150 relative overflow-hidden">
                 <MapComponent 
                   key="dashboard-map"
                   selectedDisaster={selectedDisaster} 
@@ -269,12 +291,12 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Detail Sidebar */}
-            <div className="space-y-6">
+            {/* Detail Sidebar - Show first on mobile, second on desktop */}
+            <div className="space-y-4 sm:space-y-6 xl:order-2">
               {/* Selected Disaster Detail */}
               {selectedDisaster ? (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="bg-linear-to-r from-red-600 to-orange-600 p-6 text-white">
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="bg-linear-to-r from-red-600 to-orange-600 p-4 sm:p-6 text-white">
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`w-3 h-3 rounded-full ${
                         selectedDisaster?.tingkatKerusakan === 'Berat' ? 'bg-white' :
@@ -286,7 +308,7 @@ function DashboardContent() {
                     <p className="text-red-100 text-sm">Tingkat Kerusakan: {selectedDisaster?.tingkatKerusakan}</p>
                   </div>
                   
-                  <div className="p-6 space-y-4">
+                  <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
                     {/* Foto Lokasi */}
                     {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 0 && (
                       <div>
@@ -297,7 +319,7 @@ function DashboardContent() {
                               key={index}
                               src={foto} 
                               alt={`Foto ${index + 1}`}
-                              className="w-full h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                              className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
                               onClick={() => setSelectedPhotoUrl(foto)}
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200x150?text=Foto+Tidak+Tersedia';

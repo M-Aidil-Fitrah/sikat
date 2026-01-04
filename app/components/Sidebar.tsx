@@ -9,16 +9,22 @@ import {
   ArrowLeft, 
   ChevronLeft, 
   ChevronRight,
-  LogOut,
-  Shield
+  LogOut
 } from "lucide-react";
 
 interface SidebarProps {
   defaultCollapsed?: boolean;
   isAdmin?: boolean;
+  isMobileMenuOpen?: boolean;
+  onMobileMenuToggle?: () => void;
 }
 
-export default function Sidebar({ defaultCollapsed = false, isAdmin = false }: SidebarProps) {
+export default function Sidebar({ 
+  defaultCollapsed = false, 
+  isAdmin = false,
+  isMobileMenuOpen: externalMobileMenuOpen,
+  onMobileMenuToggle
+}: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -29,11 +35,26 @@ export default function Sidebar({ defaultCollapsed = false, isAdmin = false }: S
     return defaultCollapsed;
   });
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Use external control if provided, otherwise use internal state
+  const isMenuOpen = externalMobileMenuOpen !== undefined ? externalMobileMenuOpen : isMobileMenuOpen;
+  const toggleMobileMenu = onMobileMenuToggle || (() => setIsMobileMenuOpen(!isMobileMenuOpen));
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    // Return cleanup function to close menu on unmount/route change
+    return () => {
+      if (!externalMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+  }, [pathname, externalMobileMenuOpen]);
 
   const toggleCollapse = () => {
     const newState = !isCollapsed;
@@ -71,53 +92,60 @@ export default function Sidebar({ defaultCollapsed = false, isAdmin = false }: S
 
   if (!isMounted) {
     return (
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-10">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
-          </div>
+      <>
+        {/* Mobile hamburger placeholder */}
+        <div className="lg:hidden fixed top-4 left-4 z-50">
+          <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
         </div>
-      </aside>
+        {/* Desktop sidebar placeholder */}
+        <aside className="hidden lg:flex w-72 bg-white border-r border-gray-200 flex-col fixed left-0 top-0 bottom-0 z-10">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="h-11 w-11 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </aside>
+      </>
     );
   }
 
   return (
-    <aside 
-      className={`bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-10 transition-all duration-300 ease-in-out ${
-        isCollapsed ? "w-20" : "w-72"
-      }`}
-    >
+    <>
+      {/* Mobile Overlay */}
+      {isMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+          onClick={toggleMobileMenu}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside 
+        className={`bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 ease-in-out ${
+          isCollapsed ? "w-20" : "w-72"
+        } ${
+          isMenuOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
+      >
       {/* Header */}
       <div className={`border-b border-gray-200 ${isCollapsed ? "p-4" : "p-6"}`}>
         <Link href={isAdmin ? "/superuser/dashboard" : "/"} className="flex items-center gap-3 group">
-          {isAdmin ? (
-            <>
-              <div className="w-11 h-11 bg-linear-to-br from-red-600 to-orange-500 rounded-xl flex items-center justify-center shadow-md shrink-0">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              {!isCollapsed && (
-                <div className="overflow-hidden">
-                  <span className="text-lg font-bold text-gray-900 block">Admin SIKAT</span>
-                  <span className="text-xs text-gray-500">Dashboard Admin</span>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <img 
-                src="/logo-satgas-usk.png" 
-                alt="Logo SATGAS USK" 
-                className={`transition-all duration-300 ${isCollapsed ? "h-10 w-auto" : "h-11 w-auto"}`}
-              />
-              {!isCollapsed && (
-                <div className="overflow-hidden">
-                  <span className="text-sm font-bold text-gray-900 block leading-tight">
-                    Sistem Informasi<br/>Kebencanaan Terpadu
-                  </span>
-                </div>
-              )}
-            </>
+          <img 
+            src="/logo-satgas-usk.png" 
+            alt="Logo SATGAS USK" 
+            className={`transition-all duration-300 ${isCollapsed ? "h-10 w-auto" : "h-11 w-auto"}`}
+          />
+          {!isCollapsed && (
+            <div className="overflow-hidden">
+              <span className="text-sm font-bold text-gray-900 block leading-tight">
+                {isAdmin ? (
+                  <>Admin SIKAT<br/>Dashboard Admin</>
+                ) : (
+                  <>Sistem Informasi<br/>Kebencanaan Terpadu</>
+                )}
+              </span>
+            </div>
           )}
         </Link>
       </div>
@@ -132,6 +160,7 @@ export default function Sidebar({ defaultCollapsed = false, isAdmin = false }: S
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setIsMobileMenuOpen(false)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 group relative ${
                 isActive
                   ? "text-red-600 bg-red-50"
@@ -153,8 +182,8 @@ export default function Sidebar({ defaultCollapsed = false, isAdmin = false }: S
         })}
       </nav>
       
-      {/* Collapse Toggle - Small Icon Button */}
-      <div className="absolute -right-3 top-6 z-50">
+      {/* Collapse Toggle - Small Icon Button (Desktop only) */}
+      <div className="hidden lg:block absolute -right-3 top-6 z-50">
         <button
           onClick={toggleCollapse}
           className="w-6 h-6 bg-white border border-gray-200 rounded shadow-sm hover:shadow-md hover:bg-gray-50 flex items-center justify-center transition-all duration-200 group"
@@ -210,5 +239,6 @@ export default function Sidebar({ defaultCollapsed = false, isAdmin = false }: S
         )}
       </div>
     </aside>
+    </>
   );
 }

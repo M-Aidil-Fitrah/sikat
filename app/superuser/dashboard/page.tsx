@@ -19,7 +19,8 @@ import {
   X,
   Filter,
   ChevronRight,
-  Download
+  Download,
+  Menu
 } from 'lucide-react';
 
 interface Report {
@@ -53,6 +54,12 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
 
   // Load sidebar state
   useEffect(() => {
@@ -303,82 +310,101 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <Sidebar isAdmin={true} />
+      <Sidebar 
+        isAdmin={true}
+        isMobileMenuOpen={isMobileMenuOpen}
+        onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+      />
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? "ml-20" : "ml-72"}`}>
-        <div className="p-8">
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}>
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex justify-between items-start">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Admin</h1>
-                <p className="text-gray-600">Kelola dan verifikasi laporan bencana alam</p>
+          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+            <div className="flex justify-between items-start sm:items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Dashboard Admin</h1>
+                <p className="text-gray-500 mt-1 text-sm">Kelola dan verifikasi laporan bencana alam</p>
               </div>
-              <button
-                onClick={downloadExcel}
-                disabled={filteredReports.length === 0}
-                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-5 h-5" />
-                Download Excel
-              </button>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={downloadExcel}
+                  disabled={filteredReports.length === 0}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-lg sm:rounded-xl text-xs sm:text-base font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-orange-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="hidden sm:inline">Download Excel</span>
+                  <span className="sm:hidden">Excel</span>
+                </button>
+                
+                {/* Hamburger Menu - Mobile Only */}
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Toggle menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* Content Wrapper */}
+          <div className="p-4 sm:p-6 lg:p-8">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-gray-600" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
                 </div>
-                <span className="text-sm text-gray-500">Total</span>
+                <span className="text-xs sm:text-sm text-gray-500">Total</span>
               </div>
-              <p className="text-3xl font-bold text-gray-900 mb-1">{stats.total}</p>
-              <p className="text-sm text-gray-600">Total Laporan</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.total}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Total Laporan</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-yellow-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-yellow-200 p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
                 </div>
-                <span className="text-sm text-yellow-700">Total</span>
+                <span className="text-xs sm:text-sm text-yellow-700">Total</span>
               </div>
-              <p className="text-3xl font-bold text-yellow-600 mb-1">{stats.pending}</p>
-              <p className="text-sm text-gray-600">Menunggu Verifikasi</p>
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-600 mb-1">{stats.pending}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Menunggu Verifikasi</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-green-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-green-600" />
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-green-200 p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <span className="text-sm text-green-700">Total</span>
+                <span className="text-xs sm:text-sm text-green-700">Total</span>
               </div>
-              <p className="text-3xl font-bold text-green-600 mb-1">{stats.approved}</p>
-              <p className="text-sm text-gray-600">Disetujui</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">{stats.approved}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Disetujui</p>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-red-200 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  <XCircle className="w-6 h-6 text-red-600" />
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-red-200 p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 </div>
-                <span className="text-sm text-red-700">Total</span>
+                <span className="text-xs sm:text-sm text-red-700">Total</span>
               </div>
-              <p className="text-3xl font-bold text-red-600 mb-1">{stats.rejected}</p>
-              <p className="text-sm text-gray-600">Ditolak</p>
+              <p className="text-2xl sm:text-3xl font-bold text-red-600 mb-1">{stats.rejected}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Ditolak</p>
             </div>
           </div>
 
           {/* Filter */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <Filter className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-semibold text-gray-700">Filter Status:</span>
-              <div className="flex gap-2 flex-1">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Filter className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                <span className="text-xs sm:text-sm font-semibold text-gray-700">Filter Status:</span>
+              </div>
+              <div className="flex gap-2 flex-1 flex-wrap">
                 {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as StatusFilter[]).map(status => (
                   <button
                     key={status}
@@ -397,9 +423,9 @@ export default function AdminDashboard() {
           </div>
 
           {/* Reports List */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">Daftar Laporan</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-3 sm:p-4 border-b border-gray-100">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Daftar Laporan</h2>
             </div>
 
             {filteredReports.length === 0 ? (
@@ -439,22 +465,22 @@ export default function AdminDashboard() {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                            <span className="flex items-center gap-1">
-                              <User className="w-4 h-4" />
-                              {report.namaPelapor}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-2">
+                            <span className="flex items-center gap-1 truncate">
+                              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                              <span className="truncate">{report.namaPelapor}</span>
                             </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {report.desaKecamatan}
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                              <span className="truncate">{report.desaKecamatan}</span>
                             </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {new Date(report.submittedAt || report.createdAt).toLocaleDateString('id-ID', {
+                            <span className="flex items-center gap-1 truncate">
+                              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                              <span className="truncate">{new Date(report.submittedAt || report.createdAt).toLocaleDateString('id-ID', {
                                 day: 'numeric',
                                 month: 'short',
                                 year: 'numeric'
-                              })}
+                              })}</span>
                             </span>
                           </div>
 
@@ -480,7 +506,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-        </div>
+          </div>
       </main>
 
       {/* Detail Modal */}
