@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, AlertCircle, Loader2 } from 'lucide-react';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-export default function SuperUserLogin() {
+function SuperUserLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
@@ -141,5 +141,17 @@ export default function SuperUserLogin() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SuperUserLogin() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-linear-to-br from-red-50 via-orange-50 to-amber-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+      </div>
+    }>
+      <SuperUserLoginContent />
+    </Suspense>
   );
 }

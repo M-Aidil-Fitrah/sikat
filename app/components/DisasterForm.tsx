@@ -408,7 +408,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" style={{ zIndex: 9999 }}>
       <div className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-2xl">
         {/* Header */}
         <div className="bg-linear-to-r from-red-600 to-orange-600 p-6 rounded-t-2xl flex items-center justify-between">

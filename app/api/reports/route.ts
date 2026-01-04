@@ -192,10 +192,11 @@ export async function POST(request: NextRequest) {
 
 // Helper functions
 function getRelativeTime(date: Date | string): string {
+  // Get current time in WIB (UTC+7)
   const now = new Date();
   const submittedDate = new Date(date);
   
-  // Ensure we're comparing in the same timezone
+  // Calculate difference (both dates are in UTC, comparison is correct)
   const diffInMs = now.getTime() - submittedDate.getTime();
   
   // Handle future dates (timezone issues)

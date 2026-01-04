@@ -7,16 +7,23 @@ import type { DisasterData, Report } from "@/lib/types";
 import { getReports } from "@/lib/api";
 import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
 
-// Format detailed timestamp
+// Convert UTC to WIB (GMT+7)
+const toWIB = (date: Date | string): Date => {
+  const utcDate = new Date(date);
+  // Add 7 hours for WIB timezone
+  return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
+};
+
+// Format detailed timestamp in WIB
 const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
-  const date = new Date(dateString);
+  const wibDate = toWIB(dateString);
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  const day = date.getDate();
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes})`;
+  const day = wibDate.getUTCDate();
+  const month = months[wibDate.getUTCMonth()];
+  const year = wibDate.getUTCFullYear();
+  const hours = wibDate.getUTCHours().toString().padStart(2, '0');
+  const minutes = wibDate.getUTCMinutes().toString().padStart(2, '0');
+  return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes} WIB)`;
 };
 
 // Dynamic import to avoid SSR issues with Leaflet
@@ -84,12 +91,9 @@ export default function Dashboard() {
       <aside className="w-72 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-10">
         <div className="p-6 border-b border-gray-200">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 bg-linear-to-br from-red-600 to-orange-500 rounded-lg flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <span className="text-white font-bold text-xl">S</span>
-            </div>
+            <img src="/logo-satgas-usk.png" alt="Logo SATGAS USK" className="h-11 w-auto" />
             <div>
-              <span className="text-lg font-bold text-gray-900 block">SIKAT</span>
-              <span className="text-xs text-gray-500">Dashboard</span>
+              <span className="text-sm font-bold text-gray-900 block leading-tight">Sistem Informasi<br/>Kebencanaan Terpadu</span>
             </div>
           </Link>
         </div>
@@ -123,7 +127,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Dashboard Kebencanaan</h1>
-              <p className="text-gray-500 mt-1">Pemantauan Banjir & Longsor - Wilayah Sumatra</p>
+              <p className="text-gray-500 mt-1">Pemantauan Bencana Banjir Sumatra </p>
             </div>
             <div className="flex items-center gap-3">
               <button 
@@ -138,8 +142,7 @@ export default function Dashboard() {
               </button>
               <button 
                 onClick={() => setShowInputForm(!showInputForm)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30"
-              >
+                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -222,8 +225,8 @@ export default function Dashboard() {
                   </svg>
                 </div>
               </div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{stats.approved}</div>
-              <div className="text-gray-500 font-medium">Diverifikasi</div>
+              <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Ringan').length}</div>
+              <div className="text-gray-500 font-medium">Kerusakan Ringan</div>
             </div>
           </div>
 
@@ -233,7 +236,7 @@ export default function Dashboard() {
             <div className="col-span-2 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-fit">
               <div className="p-6 border-b border-gray-100">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Banjir & Longsor</h2>
+                  <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Laporan Bencana Banjir Sumatra</h2>
                   <p className="text-sm text-gray-500 mt-1">Monitoring Real-time</p>
                 </div>
               </div>
@@ -456,7 +459,7 @@ export default function Dashboard() {
 
       {/* Detail Overlay Modal */}
       {showDetailOverlay && selectedDisaster && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setShowDetailOverlay(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9998 }} onClick={() => setShowDetailOverlay(false)}>
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="sticky top-0 bg-linear-to-r from-red-600 to-orange-600 text-white p-6 flex items-center justify-between">
@@ -567,7 +570,7 @@ export default function Dashboard() {
       {selectedPhotoUrl && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
-          style={{ zIndex: 100 }}
+          style={{ zIndex: 10000 }}
           onClick={() => setSelectedPhotoUrl(null)}
         >
           <button 

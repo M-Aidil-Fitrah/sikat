@@ -1,88 +1,10 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
-import type { LatLngExpression } from 'leaflet';
-import { Droplets, Mountain, MapPin, Clock, AlertTriangle, FileText, User, CheckCircle } from 'lucide-react';
-import { renderToString } from 'react-dom/server';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { Clock, AlertTriangle, User } from 'lucide-react';
 import type { DisasterData } from '@/lib/types';
-
-// Format detailed timestamp
-const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
-  const date = new Date(dateString);
-  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  const day = date.getDate();
-  const month = months[date.getMonth()];
-  const year = date.getFullYear();
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes})`;
-};
-
-// Extend HTMLElement to include _leaflet_id
-declare global {
-  interface HTMLElement {
-    _leaflet_id?: number;
-  }
-}
-
-// Fix Leaflet default marker icon issue in Next.js (only on client-side)
-if (typeof window !== 'undefined') {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  });
-}
-
-// Custom marker icons based on tingkatKerusakan
-const createCustomIcon = (tingkatKerusakan: string, jenisKerusakan: string) => {
-  const color = tingkatKerusakan === 'Berat' ? '#dc2626' : tingkatKerusakan === 'Sedang' ? '#f59e0b' : '#10b981';
-  
-  // Gunakan AlertTriangle untuk semua jenis kerusakan
-  const iconSvg = renderToString(<AlertTriangle className="w-5 h-5" />);
-  
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `
-      <div style="
-        background: ${color};
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.35);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-      ">
-        <div style="color: white;">
-          ${iconSvg}
-        </div>
-      </div>
-    `,
-    iconSize: [38, 38],
-    iconAnchor: [19, 19],
-    popupAnchor: [0, -19]
-  });
-};
-
-const getSeverityColor = (tingkatKerusakan: string) => {
-  switch (tingkatKerusakan) {
-    case 'Berat':
-      return '#dc2626';
-    case 'Sedang':
-      return '#f59e0b';
-    case 'Ringan':
-      return '#10b981';
-    default:
-      return '#6b7280';
-  }
-};
+import type { Map, Marker, Circle, DivIcon } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 interface MapComponentProps {
   selectedDisaster: DisasterData | null;
@@ -92,42 +14,348 @@ interface MapComponentProps {
   isDetailOverlayOpen?: boolean;
 }
 
-function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (selectedDisaster) {
-      map.setView([selectedDisaster.lat, selectedDisaster.lng] as LatLngExpression, 13);
-    }
-  }, [selectedDisaster, map]);
-
-  return null;
-}
-
-export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpenDetailOverlay, disasters = [], isDetailOverlayOpen = false }: MapComponentProps) {
+export default function MapComponent({ 
+  selectedDisaster, 
+  onDisasterSelect, 
+  onOpenDetailOverlay, 
+  disasters = [], 
+  isDetailOverlayOpen = false 
+}: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [mapKey, setMapKey] = useState(0);
-  const [mapId] = useState(() => `map-${Math.random().toString(36).substr(2, 9)}`);
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Refs for map instances with proper Leaflet types
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const fullscreenMapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<Map | null>(null);
+  const fullscreenMapInstanceRef = useRef<Map | null>(null);
+  const markersRef = useRef<Marker[]>([]);
+  const circlesRef = useRef<Circle[]>([]);
+  const fullscreenMarkersRef = useRef<Marker[]>([]);
+  const fullscreenCirclesRef = useRef<Circle[]>([]);
 
+  // Lock body scroll
+  useEffect(() => {
+    if (isFullscreen || selectedPhotoUrl || isDetailOverlayOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen, selectedPhotoUrl, isDetailOverlayOpen]);
+
+  // Mount check
   useEffect(() => {
     setIsMounted(true);
-    
     return () => {
       setIsMounted(false);
-      // Cleanup any existing map containers
-      if (typeof window !== 'undefined') {
-        const containers = document.querySelectorAll('.leaflet-container');
-        containers.forEach(container => {
-          const leafletContainer = container as HTMLElement;
-          if (leafletContainer._leaflet_id) {
-            delete leafletContainer._leaflet_id;
-          }
-        });
-      }
     };
   }, []);
+
+  // Create custom icon
+  const createCustomIcon = useCallback((L: typeof import('leaflet'), tingkatKerusakan: string): DivIcon => {
+    const color = tingkatKerusakan === 'Berat' ? '#dc2626' : tingkatKerusakan === 'Sedang' ? '#f59e0b' : '#10b981';
+    
+    return L.divIcon({
+      className: 'custom-marker',
+      html: `
+        <div style="
+          background: ${color};
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <path d="M12 9v4"/>
+            <path d="M12 17h.01"/>
+          </svg>
+        </div>
+      `,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+      popupAnchor: [0, -19]
+    });
+  }, []);
+
+  // Create popup content
+  const createPopupContent = useCallback((disaster: DisasterData) => {
+    const badgeClass = disaster.tingkatKerusakan === 'Berat' 
+      ? 'background: #fef2f2; color: #b91c1c;' 
+      : disaster.tingkatKerusakan === 'Sedang' 
+        ? 'background: #fffbeb; color: #b45309;' 
+        : 'background: #f0fdf4; color: #15803d;';
+
+    return `
+      <div style="padding: 4px; min-width: 220px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px;">
+          <h3 style="font-weight: bold; color: #111827; font-size: 14px; flex: 1; margin: 0;">${disaster.jenisKerusakan}</h3>
+          <span style="padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 600; ${badgeClass}">
+            ${disaster.tingkatKerusakan}
+          </span>
+        </div>
+        ${disaster.fotoLokasi && disaster.fotoLokasi.length > 0 ? `
+          <div style="margin-bottom: 12px;">
+            <img 
+              src="${disaster.fotoLokasi[0]}" 
+              alt="Foto lokasi" 
+              style="width: 100%; height: 128px; object-fit: cover; border-radius: 8px; cursor: pointer;"
+              onclick="window.dispatchEvent(new CustomEvent('openPhoto', { detail: '${disaster.fotoLokasi[0]}' }))"
+              onerror="this.style.display='none'"
+            />
+            ${disaster.fotoLokasi.length > 1 ? `<p style="font-size: 12px; color: #6b7280; margin-top: 6px; text-align: center;">+${disaster.fotoLokasi.length - 1} foto</p>` : ''}
+          </div>
+        ` : ''}
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <p style="font-size: 12px; color: #4b5563; margin: 0;">${disaster.timestamp}</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span style="font-size: 12px; color: #374151; margin: 0;">${disaster.namaPelapor}</span>
+          </div>
+        </div>
+        <button 
+          onclick="window.dispatchEvent(new CustomEvent('openDetail', { detail: ${disaster.id} }))"
+          style="width: 100%; background: linear-gradient(to right, #dc2626, #ea580c); color: white; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; border: none; cursor: pointer;"
+        >
+          Lihat Detail
+        </button>
+      </div>
+    `;
+  }, []);
+
+  // Cleanup map helper
+  const cleanupMap = useCallback((mapRef: React.MutableRefObject<Map | null>, markersRefArr: React.MutableRefObject<Marker[]>, circlesRefArr: React.MutableRefObject<Circle[]>) => {
+    // Remove markers
+    markersRefArr.current.forEach(marker => {
+      try {
+        marker.remove();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    });
+    markersRefArr.current = [];
+
+    // Remove circles
+    circlesRefArr.current.forEach(circle => {
+      try {
+        circle.remove();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+    });
+    circlesRefArr.current = [];
+
+    // Remove map
+    if (mapRef.current) {
+      try {
+        mapRef.current.remove();
+      } catch (e) {
+        // Ignore errors during cleanup
+      }
+      mapRef.current = null;
+    }
+  }, []);
+
+  // Initialize normal map
+  useEffect(() => {
+    if (!isMounted || isFullscreen || isDetailOverlayOpen) return;
+
+    let isCancelled = false;
+
+    const initMap = async () => {
+      // Wait for container to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (isCancelled || !mapContainerRef.current) return;
+
+      // Clean up existing map first
+      cleanupMap(mapInstanceRef, markersRef, circlesRef);
+
+      // Double check container is clean
+      if ((mapContainerRef.current as HTMLDivElement & { _leaflet_id?: number })._leaflet_id) {
+        delete (mapContainerRef.current as HTMLDivElement & { _leaflet_id?: number })._leaflet_id;
+      }
+
+      try {
+        const L = (await import('leaflet')).default;
+
+        if (isCancelled || !mapContainerRef.current) return;
+
+        // Create new map
+        const map = L.map(mapContainerRef.current, {
+          center: [5.5483, 95.3238],
+          zoom: 10,
+          scrollWheelZoom: true,
+          zoomControl: true
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        mapInstanceRef.current = map;
+
+        // Add markers
+        disasters.forEach((disaster) => {
+          if (isCancelled) return;
+          const icon = createCustomIcon(L, disaster.tingkatKerusakan);
+          
+          const marker = L.marker([disaster.lat, disaster.lng], { icon })
+            .addTo(map)
+            .bindPopup(createPopupContent(disaster), { maxWidth: 280 });
+
+          marker.on('click', () => onDisasterSelect(disaster));
+          markersRef.current.push(marker);
+        });
+
+        // Add circles for severe disasters
+        disasters.filter(d => d.tingkatKerusakan === 'Berat').forEach((disaster) => {
+          if (isCancelled) return;
+          const circle = L.circle([disaster.lat, disaster.lng], {
+            radius: 2000,
+            color: '#dc2626',
+            fillColor: '#dc2626',
+            fillOpacity: 0.1,
+            weight: 1
+          }).addTo(map);
+          circlesRef.current.push(circle);
+        });
+
+        // Pan to selected disaster
+        if (selectedDisaster) {
+          map.setView([selectedDisaster.lat, selectedDisaster.lng], 13);
+        }
+      } catch (error) {
+        console.error('Error initializing map:', error);
+      }
+    };
+
+    initMap();
+
+    return () => {
+      isCancelled = true;
+      cleanupMap(mapInstanceRef, markersRef, circlesRef);
+    };
+  }, [isMounted, isFullscreen, isDetailOverlayOpen, disasters, selectedDisaster, createCustomIcon, createPopupContent, onDisasterSelect, cleanupMap]);
+
+  // Initialize fullscreen map
+  useEffect(() => {
+    if (!isMounted || !isFullscreen) return;
+
+    let isCancelled = false;
+
+    const initFullscreenMap = async () => {
+      // Wait for container to be ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      if (isCancelled || !fullscreenMapContainerRef.current) return;
+
+      // Clean up existing map first
+      cleanupMap(fullscreenMapInstanceRef, fullscreenMarkersRef, fullscreenCirclesRef);
+
+      // Double check container is clean
+      if ((fullscreenMapContainerRef.current as HTMLDivElement & { _leaflet_id?: number })._leaflet_id) {
+        delete (fullscreenMapContainerRef.current as HTMLDivElement & { _leaflet_id?: number })._leaflet_id;
+      }
+
+      try {
+        const L = (await import('leaflet')).default;
+
+        if (isCancelled || !fullscreenMapContainerRef.current) return;
+
+        const center: [number, number] = selectedDisaster 
+          ? [selectedDisaster.lat, selectedDisaster.lng] 
+          : [5.5483, 95.3238];
+        
+        const zoom = selectedDisaster ? 13 : 10;
+
+        const map = L.map(fullscreenMapContainerRef.current, {
+          center,
+          zoom,
+          scrollWheelZoom: true,
+          zoomControl: true
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        fullscreenMapInstanceRef.current = map;
+
+        // Add markers
+        disasters.forEach((disaster) => {
+          if (isCancelled) return;
+          const icon = createCustomIcon(L, disaster.tingkatKerusakan);
+          
+          const marker = L.marker([disaster.lat, disaster.lng], { icon })
+            .addTo(map)
+            .bindPopup(createPopupContent(disaster), { maxWidth: 280 });
+
+          marker.on('click', () => onDisasterSelect(disaster));
+          fullscreenMarkersRef.current.push(marker);
+        });
+
+        // Add circles
+        disasters.filter(d => d.tingkatKerusakan === 'Berat').forEach((disaster) => {
+          if (isCancelled) return;
+          const circle = L.circle([disaster.lat, disaster.lng], {
+            radius: 2000,
+            color: '#dc2626',
+            fillColor: '#dc2626',
+            fillOpacity: 0.1,
+            weight: 1
+          }).addTo(map);
+          fullscreenCirclesRef.current.push(circle);
+        });
+      } catch (error) {
+        console.error('Error initializing fullscreen map:', error);
+      }
+    };
+
+    initFullscreenMap();
+
+    return () => {
+      isCancelled = true;
+      cleanupMap(fullscreenMapInstanceRef, fullscreenMarkersRef, fullscreenCirclesRef);
+    };
+  }, [isMounted, isFullscreen, disasters, selectedDisaster, createCustomIcon, createPopupContent, onDisasterSelect, cleanupMap]);
+
+  // Listen for custom events from popup buttons
+  useEffect(() => {
+    const handleOpenPhoto = (e: CustomEvent<string>) => {
+      setSelectedPhotoUrl(e.detail);
+    };
+
+    const handleOpenDetail = (e: CustomEvent<number>) => {
+      const disaster = disasters.find(d => d.id === e.detail);
+      if (disaster) {
+        setIsFullscreen(false);
+        onDisasterSelect(disaster);
+        if (onOpenDetailOverlay) {
+          onOpenDetailOverlay(disaster);
+        }
+      }
+    };
+
+    window.addEventListener('openPhoto', handleOpenPhoto as EventListener);
+    window.addEventListener('openDetail', handleOpenDetail as EventListener);
+
+    return () => {
+      window.removeEventListener('openPhoto', handleOpenPhoto as EventListener);
+      window.removeEventListener('openDetail', handleOpenDetail as EventListener);
+    };
+  }, [disasters, onDisasterSelect, onOpenDetailOverlay]);
 
   if (!isMounted) {
     return (
@@ -141,49 +369,14 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpe
   }
 
   return (
-    <div key={mapKey} className="w-full h-full relative">
-      {/* Fullscreen Button - Hidden saat fullscreen atau overlay aktif */}
-      {!isFullscreen && !isDetailOverlayOpen && (
-        <button
-          onClick={() => setIsFullscreen(true)}
-          className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
-          style={{ zIndex: 1000 }}
-          title="Fullscreen"
-        >
-          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-          </svg>
-        </button>
-      )}
-
-      {/* Legenda - Hidden saat fullscreen atau overlay aktif */}
-      {!isFullscreen && !isDetailOverlayOpen && (
-        <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-md border border-gray-200 p-2.5" style={{ zIndex: 1000 }}>
-          <h4 className="text-xs font-bold text-gray-900 mb-1.5">Tingkat Kerusakan</h4>
-          <div className="space-y-1">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-600"></div>
-              <span className="text-xs text-gray-700">Berat</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-              <span className="text-xs text-gray-700">Sedang</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-green-600"></div>
-              <span className="text-xs text-gray-700">Ringan</span>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <div className="w-full h-full relative">
       {/* Fullscreen Overlay */}
       {isFullscreen && (
         <div 
           className="fixed inset-0 bg-white flex flex-col"
           style={{ zIndex: 999 }}
         >
-          {/* Exit Button - Hanya 1 di kanan atas */}
+          {/* Exit Button */}
           <button
             onClick={() => setIsFullscreen(false)}
             className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
@@ -213,229 +406,85 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpe
             </div>
           </div>
 
-          <div className="flex-1" onClick={(e) => e.stopPropagation()}>
-            <MapContainer
-              center={selectedDisaster ? [selectedDisaster.lat, selectedDisaster.lng] : [5.5483, 95.3238] as LatLngExpression}
-              zoom={selectedDisaster ? 13 : 10}
-              style={{ height: '100%', width: '100%' }}
-              className="z-0"
-              scrollWheelZoom={true}
-              zoomControl={true}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              
-              {disasters.map((disaster) => (
-                <Marker
-                  key={disaster.id}
-                  position={[disaster.lat, disaster.lng] as LatLngExpression}
-                  icon={createCustomIcon(disaster.tingkatKerusakan, disaster.jenisKerusakan)}
-                  eventHandlers={{
-                    click: () => onDisasterSelect(disaster)
-                  }}
-                >
-                  <Popup maxWidth={280} className="minimal-popup">
-                    <div className="p-1">
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <h3 className="font-bold text-gray-900 text-sm flex-1">{disaster.jenisKerusakan}</h3>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
-                          disaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
-                          disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {disaster.tingkatKerusakan}
-                        </span>
-                      </div>
-                      {disaster.fotoLokasi && disaster.fotoLokasi.length > 0 && (
-                        <div className="mb-3">
-                          <img 
-                            src={disaster.fotoLokasi[0]} 
-                            alt="Foto lokasi" 
-                            className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setSelectedPhotoUrl(disaster.fotoLokasi[0])}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                          {disaster.fotoLokasi.length > 1 && (
-                            <p className="text-xs text-gray-500 mt-1.5 text-center">+{disaster.fotoLokasi.length - 1} foto</p>
-                          )}
-                        </div>
-                      )}
-                      <div className="space-y-2 mb-3">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <p className="text-xs text-gray-600 flex-1 min-w-0">{disaster.timestamp}</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span className="text-xs text-gray-700 flex-1 min-w-0 truncate">{disaster.namaPelapor}</span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setIsFullscreen(false);
-                          onDisasterSelect(disaster);
-                          if (onOpenDetailOverlay) {
-                            onOpenDetailOverlay(disaster);
-                          }
-                        }}
-                        className="w-full bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white py-2 px-4 rounded-lg text-xs font-semibold transition-all shadow-sm"
-                      >
-                        Lihat Detail
-                      </button>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-              
-              {disasters.filter(d => d.tingkatKerusakan === 'Berat').map((disaster) => (
-                <Circle
-                  key={`circle-${disaster.id}`}
-                  center={[disaster.lat, disaster.lng] as LatLngExpression}
-                  radius={2000}
-                  pathOptions={{
-                    color: '#dc2626',
-                    fillColor: '#dc2626',
-                    fillOpacity: 0.1,
-                    weight: 1
-                  }}
-                />
-              ))}
-            </MapContainer>
-          </div>
+          {/* Fullscreen Map Container */}
+          <div 
+            ref={fullscreenMapContainerRef} 
+            className="flex-1 w-full"
+            style={{ minHeight: '100vh' }}
+          />
         </div>
       )}
-      <MapContainer
-        center={[5.5483, 95.3238] as LatLngExpression}
-        zoom={10}
-        style={{ height: '100%', width: '100%', borderRadius: '1rem' }}
-        className="z-0"
-        id={mapId}
-        scrollWheelZoom={true}
-        zoomControl={true}
-      >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-      
-      {disasters.map((disaster) => (
-        <Marker
-          key={disaster.id}
-          position={[disaster.lat, disaster.lng] as LatLngExpression}
-          icon={createCustomIcon(disaster.tingkatKerusakan, disaster.jenisKerusakan)}
-          eventHandlers={{
-            click: () => onDisasterSelect(disaster)
-          }}
-        >
-          <Popup maxWidth={280} className="minimal-popup">
-            <div className="p-1">
-              {/* Header minimalist */}
-              <div className="flex items-center justify-between gap-2 mb-3">
-                <h3 className="font-bold text-gray-900 text-sm flex-1">{disaster.jenisKerusakan}</h3>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold shrink-0 ${
-                  disaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
-                  disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
-                  'bg-green-100 text-green-700'
-                }`}>
-                  {disaster.tingkatKerusakan}
-                </span>
-              </div>
 
-              {/* Foto jika ada */}
-              {disaster.fotoLokasi && disaster.fotoLokasi.length > 0 && (
-                <div className="mb-3">
-                  <img 
-                    src={disaster.fotoLokasi[0]} 
-                    alt="Foto lokasi" 
-                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setSelectedPhotoUrl(disaster.fotoLokasi[0])}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                  {disaster.fotoLokasi.length > 1 && (
-                    <p className="text-xs text-gray-500 mt-1.5 text-center">+{disaster.fotoLokasi.length - 1} foto</p>
-                  )}
-                </div>
-              )}
+      {/* Normal Map View */}
+      {!isFullscreen && (
+        <>
+          {/* Fullscreen Button */}
+          {!isDetailOverlayOpen && (
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
+              style={{ zIndex: 1000 }}
+              title="Fullscreen"
+            >
+              <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            </button>
+          )}
 
-              {/* Info minimalist */}
-              <div className="space-y-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <p className="text-xs text-gray-600 flex-1 min-w-0">
-                    {disaster.timestamp}
-                  </p>
+          {/* Legenda */}
+          {!isDetailOverlayOpen && (
+            <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-md border border-gray-200 p-2.5" style={{ zIndex: 1000 }}>
+              <h4 className="text-xs font-bold text-gray-900 mb-1.5">Tingkat Kerusakan</h4>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-600"></div>
+                  <span className="text-xs text-gray-700">Berat</span>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span className="text-xs text-gray-700 flex-1 min-w-0 truncate">{disaster.namaPelapor}</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                  <span className="text-xs text-gray-700">Sedang</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-green-600"></div>
+                  <span className="text-xs text-gray-700">Ringan</span>
                 </div>
               </div>
-
-              {/* Tombol detail */}
-              <button
-                onClick={() => {
-                  onDisasterSelect(disaster);
-                  if (onOpenDetailOverlay) {
-                    onOpenDetailOverlay(disaster);
-                  }
-                }}
-                className="w-full bg-linear-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white py-2 px-4 rounded-lg text-xs font-semibold transition-all shadow-sm"
-              >
-                Lihat Detail
-              </button>
             </div>
-          </Popup>
-        </Marker>
-      ))}
-      
-      {/* Radius circles for high severity disasters */}
-      {disasters.filter(d => d.tingkatKerusakan === 'Berat').map((disaster) => (
-        <Circle
-          key={`circle-${disaster.id}`}
-          center={[disaster.lat, disaster.lng] as LatLngExpression}
-          radius={2000}
-          pathOptions={{
-            color: '#dc2626',
-            fillColor: '#dc2626',
-            fillOpacity: 0.1,
-            weight: 1
-          }}
-        />
-      ))}
+          )}
 
-      <MapEvents selectedDisaster={selectedDisaster} onDisasterSelect={onDisasterSelect} />
-    </MapContainer>
+          {/* Normal Map Container */}
+          <div 
+            ref={mapContainerRef} 
+            className="w-full h-full rounded-2xl"
+            style={{ minHeight: '400px' }}
+          />
+        </>
+      )}
 
-    {/* Photo Viewer Modal */}
-    {selectedPhotoUrl && (
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
-        style={{ zIndex: 9999 }}
-        onClick={() => setSelectedPhotoUrl(null)}
-      >
-        <button 
-          className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+      {/* Photo Viewer Modal */}
+      {selectedPhotoUrl && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
+          style={{ zIndex: 9999 }}
           onClick={() => setSelectedPhotoUrl(null)}
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <img 
-          src={selectedPhotoUrl} 
-          alt="Full view" 
-          className="max-w-full max-h-full object-contain rounded-lg"
-          onClick={(e) => e.stopPropagation()}
-        />
-      </div>
-    )}
+          <button 
+            className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+            onClick={() => setSelectedPhotoUrl(null)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img 
+            src={selectedPhotoUrl} 
+            alt="Full view" 
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

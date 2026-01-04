@@ -478,13 +478,14 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-gray-400" />
                     <p className="font-semibold text-gray-900">
-                      {new Date(selectedReport.submittedAt || selectedReport.createdAt).toLocaleDateString('id-ID', {
+                      {new Date(new Date(selectedReport.submittedAt || selectedReport.createdAt).getTime() + (7 * 60 * 60 * 1000)).toLocaleDateString('id-ID', {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                        minute: '2-digit',
+                        timeZone: 'UTC'
+                      })} WIB
                     </p>
                   </div>
                 </div>
