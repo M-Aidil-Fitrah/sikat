@@ -89,6 +89,7 @@ interface MapComponentProps {
   onDisasterSelect: (disaster: DisasterData) => void;
   onOpenDetailOverlay?: (disaster: DisasterData) => void;
   disasters?: DisasterData[];
+  isDetailOverlayOpen?: boolean;
 }
 
 function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
@@ -103,7 +104,7 @@ function MapEvents({ selectedDisaster, onDisasterSelect }: MapComponentProps) {
   return null;
 }
 
-export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpenDetailOverlay, disasters = [] }: MapComponentProps) {
+export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpenDetailOverlay, disasters = [], isDetailOverlayOpen = false }: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [mapKey, setMapKey] = useState(0);
   const [mapId] = useState(() => `map-${Math.random().toString(36).substr(2, 9)}`);
@@ -141,8 +142,8 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpe
 
   return (
     <div key={mapKey} className="w-full h-full relative">
-      {/* Fullscreen Button - Hidden saat fullscreen aktif */}
-      {!isFullscreen && (
+      {/* Fullscreen Button - Hidden saat fullscreen atau overlay aktif */}
+      {!isFullscreen && !isDetailOverlayOpen && (
         <button
           onClick={() => setIsFullscreen(true)}
           className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
@@ -155,8 +156,8 @@ export default function MapComponent({ selectedDisaster, onDisasterSelect, onOpe
         </button>
       )}
 
-      {/* Legenda - Hidden saat fullscreen aktif */}
-      {!isFullscreen && (
+      {/* Legenda - Hidden saat fullscreen atau overlay aktif */}
+      {!isFullscreen && !isDetailOverlayOpen && (
         <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-md border border-gray-200 p-2.5" style={{ zIndex: 1000 }}>
           <h4 className="text-xs font-bold text-gray-900 mb-1.5">Tingkat Kerusakan</h4>
           <div className="space-y-1">

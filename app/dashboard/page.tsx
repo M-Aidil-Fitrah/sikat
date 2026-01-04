@@ -234,7 +234,7 @@ export default function Dashboard() {
               <div className="p-6 border-b border-gray-100">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">Peta Sebaran Banjir & Longsor</h2>
-                  <p className="text-sm text-gray-500 mt-1">Wilayah Sumatra - Monitoring Real-time</p>
+                  <p className="text-sm text-gray-500 mt-1">Monitoring Real-time</p>
                 </div>
               </div>
               <div className="h-150 relative overflow-hidden">
@@ -247,6 +247,7 @@ export default function Dashboard() {
                     setShowDetailOverlay(true);
                   }}
                   disasters={disasters}
+                  isDetailOverlayOpen={showDetailOverlay}
                 />
               </div>
             </div>
@@ -337,7 +338,7 @@ export default function Dashboard() {
                       <div className="flex items-start gap-3">
                         <FileText className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">Keterangan Kerusakan</div>
+                          <div className="font-medium text-gray-900">Keterangan Kerusakan & Kebutuhan</div>
                           <div className="text-gray-600">{selectedDisaster?.keteranganKerusakan}</div>
                         </div>
                       </div>
@@ -431,8 +432,8 @@ export default function Dashboard() {
                           'bg-green-500'
                         }`}></span>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm">{disaster.jenisKerusakan}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{disaster.namaObjek}</div>
+                          <div className="font-medium text-gray-900 text-sm">{disaster.namaObjek}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{disaster.desaKecamatan}</div>
                           <div className="text-xs text-gray-400 mt-1">{disaster.timestamp}</div>
                         </div>
                       </div>
@@ -527,7 +528,7 @@ export default function Dashboard() {
 
               {/* Keterangan */}
               <div>
-                <h3 className="font-bold text-gray-900 mb-2">Keterangan Kerusakan</h3>
+                <h3 className="font-bold text-gray-900 mb-2">Keterangan Kerusakan & Kebutuhan</h3>
                 <p className="text-gray-700 leading-relaxed">{selectedDisaster.keteranganKerusakan}</p>
               </div>
 
@@ -546,27 +547,6 @@ export default function Dashboard() {
                     <span className="text-sm text-gray-900">{selectedDisaster.kontak}</span>
                   </div>
                 </div>
-              </div>
-
-              {/* Status */}
-              <div>
-                <h3 className="font-bold text-gray-900 mb-2">Status Verifikasi</h3>
-                {selectedDisaster.status === 'APPROVED' ? (
-                  <div className="flex items-center gap-2 bg-green-50 text-green-700 px-4 py-3 rounded-lg">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">Laporan telah diverifikasi</span>
-                  </div>
-                ) : selectedDisaster.status === 'REJECTED' ? (
-                  <div className="flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-lg">
-                    <AlertCircle className="w-5 h-5" />
-                    <span className="font-medium">Laporan ditolak</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-3 rounded-lg">
-                    <Clock className="w-5 h-5" />
-                    <span className="font-medium">Menunggu verifikasi admin</span>
-                  </div>
-                )}
               </div>
             </div>
 
