@@ -12,6 +12,7 @@ interface MapComponentProps {
   onOpenDetailOverlay?: (disaster: DisasterData) => void;
   disasters?: DisasterData[];
   isDetailOverlayOpen?: boolean;
+  mapCenter?: { lat: number; lng: number } | null;
 }
 
 export default function MapComponent({ 
@@ -19,7 +20,8 @@ export default function MapComponent({
   onDisasterSelect, 
   onOpenDetailOverlay, 
   disasters = [], 
-  isDetailOverlayOpen = false 
+  isDetailOverlayOpen = false,
+  mapCenter = null
 }: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
@@ -232,8 +234,10 @@ export default function MapComponent({
           circlesRef.current.push(circle);
         });
 
-        // Pan to selected disaster
-        if (selectedDisaster) {
+        // Pan to selected disaster or mapCenter
+        if (mapCenter) {
+          map.setView([mapCenter.lat, mapCenter.lng], 15);
+        } else if (selectedDisaster) {
           map.setView([selectedDisaster.lat, selectedDisaster.lng], 13);
         }
       } catch (error) {
@@ -247,7 +251,16 @@ export default function MapComponent({
       isCancelled = true;
       cleanupMap(mapInstanceRef, markersRef, circlesRef);
     };
-  }, [isMounted, isFullscreen, isDetailOverlayOpen, disasters, selectedDisaster, createCustomIcon, createPopupContent, onDisasterSelect, cleanupMap]);
+  }, [isMounted, isFullscreen, isDetailOverlayOpen, disasters, selectedDisaster, createCustomIcon, createPopupContent, onDisasterSelect, cleanupMap, mapCenter]);
+
+  // Handle external mapCenter changes (fly to location)
+  useEffect(() => {
+    if (mapCenter && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([mapCenter.lat, mapCenter.lng], 15, {
+        duration: 1.5
+      });
+    }
+  }, [mapCenter]);
 
   // Initialize fullscreen map
   useEffect(() => {

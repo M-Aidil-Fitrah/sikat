@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { DisasterData, Report } from "@/lib/types";
 import { getReports } from "@/lib/api";
-import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle } from "lucide-react";
+import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
+import Sidebar from "@/app/components/Sidebar";
 
 // Convert UTC to WIB (GMT+7)
 const toWIB = (date: Date | string): Date => {
@@ -43,7 +44,9 @@ const DisasterForm = dynamic(() => import("../components/DisasterForm"), {
   ssr: false
 });
 
-export default function Dashboard() {
+// Inner component that uses useSearchParams
+function DashboardContent() {
+  const searchParams = useSearchParams();
   const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
   const [showInputForm, setShowInputForm] = useState(false);
   const [showDetailOverlay, setShowDetailOverlay] = useState(false);
@@ -51,6 +54,31 @@ export default function Dashboard() {
   const [disasters, setDisasters] = useState<DisasterData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Load sidebar state
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved !== null) {
+      setSidebarCollapsed(saved === "true");
+    }
+    
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("sidebar-collapsed");
+      if (saved !== null) {
+        setSidebarCollapsed(saved === "true");
+      }
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 100);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Load disasters from API
   const loadDisasters = async () => {
@@ -72,6 +100,25 @@ export default function Dashboard() {
     loadDisasters();
   }, []);
 
+  // Handle URL parameters for map navigation
+  useEffect(() => {
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const id = searchParams.get('id');
+    
+    if (lat && lng) {
+      setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+      
+      // Find and select the disaster if id is provided
+      if (id && disasters.length > 0) {
+        const disaster = disasters.find(d => d.id === parseInt(id));
+        if (disaster) {
+          setSelectedDisaster(disaster);
+        }
+      }
+    }
+  }, [searchParams, disasters]);
+
   const handleFormSubmit = (report: Report) => {
     // Reload disasters after successful submission
     loadDisasters();
@@ -88,40 +135,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-10">
-        <div className="p-6 border-b border-gray-200">
-          <Link href="/" className="flex items-center gap-3 group">
-            <img src="/logo-satgas-usk.png" alt="Logo SATGAS USK" className="h-11 w-auto" />
-            <div>
-              <span className="text-sm font-bold text-gray-900 block leading-tight">Sistem Informasi<br/>Kebencanaan Terpadu</span>
-            </div>
-          </Link>
-        </div>
-        
-        <nav className="p-4 space-y-1">
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-red-600 bg-red-50 rounded-xl font-medium transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            Dashboard
-          </a>
-        </nav>
-        
-        {/* Spacer to push content up */}
-        <div className="flex-1"></div>
-        
-        <div className="p-4 border-t border-gray-200 mt-auto">
-          <Link href="/" className="flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl font-medium transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Kembali
-          </Link>
-        </div>
-      </aside>
+      <Sidebar />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto ml-72 min-h-screen">
+      <main className={`flex-1 overflow-y-auto min-h-screen transition-all duration-300 ${sidebarCollapsed ? "ml-20" : "ml-72"}`}>
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-8 py-6">
           <div className="flex justify-between items-center">
@@ -135,17 +152,13 @@ export default function Dashboard() {
                 className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm"
                 disabled={isLoading}
               >
-                <svg className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
                 {isLoading ? 'Memuat...' : 'Refresh'}
               </button>
               <button 
                 onClick={() => setShowInputForm(!showInputForm)}
                 className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <Plus className="w-5 h-5" />
                 Tambah Laporan
               </button>
             </div>
@@ -251,6 +264,7 @@ export default function Dashboard() {
                   }}
                   disasters={disasters}
                   isDetailOverlayOpen={showDetailOverlay}
+                  mapCenter={mapCenter}
                 />
               </div>
             </div>
@@ -590,5 +604,21 @@ export default function Dashboard() {
         </div>
       )}
     </div>
+  );
+}
+
+// Main export with Suspense boundary for useSearchParams
+export default function Dashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600 font-medium">Memuat dashboard...</p>
+        </div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }
