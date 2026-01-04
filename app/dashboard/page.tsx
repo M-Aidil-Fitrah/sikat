@@ -3,9 +3,9 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import type { DisasterData, Report } from "@/lib/types";
+import type { DisasterData } from "@/lib/types";
 import { getReports } from "@/lib/api";
-import { MapPin, Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
+import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import Sidebar from "@/app/components/Sidebar";
 
 // Convert UTC to WIB (GMT+7)
@@ -119,7 +119,7 @@ function DashboardContent() {
     }
   }, [searchParams, disasters]);
 
-  const handleFormSubmit = (report: Report) => {
+  const handleFormSubmit = () => {
     // Reload disasters after successful submission
     loadDisasters();
     setShowInputForm(false);
@@ -473,108 +473,131 @@ function DashboardContent() {
 
       {/* Detail Overlay Modal */}
       {showDetailOverlay && selectedDisaster && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 9998 }} onClick={() => setShowDetailOverlay(false)}>
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="sticky top-0 bg-linear-to-r from-red-600 to-orange-600 text-white p-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">{selectedDisaster.jenisKerusakan}</h2>
-                <p className="text-red-100 mt-1">{selectedDisaster.namaObjek}</p>
-              </div>
-              <button 
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setShowDetailOverlay(false)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header with Image/Gradient */}
+            <div className="relative h-48 shrink-0">
+              {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 0 ? (
+                <div className="absolute inset-0">
+                  <img 
+                    src={selectedDisaster.fotoLokasi[0]} 
+                    alt={selectedDisaster.namaObjek}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
+                </div>
+              ) : (
+                <div className="h-full bg-linear-to-r from-red-600 to-orange-500"></div>
+              )}
+              
+              <button
                 onClick={() => setShowDetailOverlay(false)}
-                className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+                className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+
+              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold mb-2 ${
+                  selectedDisaster.tingkatKerusakan === 'Berat' ? 'bg-red-500/90 text-white' :
+                  selectedDisaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-500/90 text-white' :
+                  'bg-green-500/90 text-white'
+                }`}>
+                  Kerusakan {selectedDisaster.tingkatKerusakan}
+                </span>
+                <h2 className="text-2xl font-bold drop-shadow-lg">{selectedDisaster.namaObjek}</h2>
+              </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Foto-foto */}
-              {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 0 && (
-                <div>
-                  <h3 className="font-bold text-gray-900 mb-3">Foto Lokasi</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {selectedDisaster.fotoLokasi.map((foto, index) => (
-                      <img 
-                        key={index}
-                        src={foto} 
-                        alt={`Foto ${index + 1}`}
-                        className="w-full h-64 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              {/* Photo Gallery */}
+              {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 1 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Foto Dokumentasi</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {selectedDisaster.fotoLokasi.map((foto, idx) => (
+                      <button
+                        key={idx}
                         onClick={() => setSelectedPhotoUrl(foto)}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400x300?text=Foto+Tidak+Tersedia';
-                        }}
-                      />
+                        className="aspect-square rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
+                      >
+                        <img src={foto} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
 
               {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-xs text-gray-500 font-semibold mb-1">KOORDINAT</div>
-                  <div className="font-mono text-sm text-gray-900">{selectedDisaster.lat.toFixed(6)}, {selectedDisaster.lng.toFixed(6)}</div>
-                </div>
-                
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-xs text-gray-500 font-semibold mb-1">LOKASI</div>
-                  <div className="text-sm text-gray-900">{selectedDisaster.desaKecamatan}</div>
-                </div>
-
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-xs text-gray-500 font-semibold mb-1">TINGKAT KERUSAKAN</div>
-                  <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                    selectedDisaster.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
-                    selectedDisaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
-                    'bg-green-100 text-green-700'
-                  }`}>{selectedDisaster.tingkatKerusakan}</span>
-                </div>
-
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-xs text-gray-500 font-semibold mb-1">WAKTU LAPORAN</div>
-                  <div className="text-sm text-gray-900">
-                    {formatDetailedTime(selectedDisaster.timestamp, selectedDisaster.submittedAt)}
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-xs font-medium uppercase tracking-wider">Lokasi</span>
                   </div>
+                  <p className="text-gray-900 font-medium">{selectedDisaster.desaKecamatan}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Waktu Lapor</span>
+                  </div>
+                  <p className="text-gray-900 font-medium text-sm">
+                    {formatDetailedTime(selectedDisaster.timestamp, selectedDisaster.submittedAt)}
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Jenis Kerusakan</span>
+                  </div>
+                  <p className="text-gray-900 font-medium">{selectedDisaster.jenisKerusakan}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <User className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Pelapor</span>
+                  </div>
+                  <p className="text-gray-900 font-medium">{selectedDisaster.namaPelapor}</p>
+                  <p className="text-gray-500 text-sm">{selectedDisaster.kontak}</p>
                 </div>
               </div>
 
               {/* Keterangan */}
-              <div>
-                <h3 className="font-bold text-gray-900 mb-2">Keterangan Kerusakan & Kebutuhan</h3>
-                <p className="text-gray-700 leading-relaxed">{selectedDisaster.keteranganKerusakan}</p>
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Keterangan Kerusakan</h3>
+                <p className="text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">
+                  {selectedDisaster.keteranganKerusakan}
+                </p>
               </div>
 
-              {/* Pelapor */}
-              <div className="bg-blue-50 rounded-xl p-4">
-                <h3 className="font-bold text-gray-900 mb-3">Informasi Pelapor</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm text-gray-900">{selectedDisaster.namaPelapor}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg>
-                    <span className="text-sm text-gray-900">{selectedDisaster.kontak}</span>
+              {/* Coordinates */}
+              <div className="bg-gray-900 rounded-xl p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-gray-400 uppercase tracking-wider">Koordinat</span>
+                    <p className="font-mono text-sm mt-1">{selectedDisaster.lat.toFixed(6)}, {selectedDisaster.lng.toFixed(6)}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t border-gray-200">
-              <button 
-                onClick={() => setShowDetailOverlay(false)}
-                className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold transition-colors"
-              >
-                Tutup
-              </button>
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0">
+              <div className="flex items-right justify-end">
+                <button
+                  onClick={() => setShowDetailOverlay(false)}
+                  className="px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-medium transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>

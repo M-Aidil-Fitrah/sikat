@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Clock, AlertTriangle, User } from 'lucide-react';
 import type { DisasterData } from '@/lib/types';
 import type { Map, Marker, Circle, DivIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -142,7 +141,7 @@ export default function MapComponent({
     markersRefArr.current.forEach(marker => {
       try {
         marker.remove();
-      } catch (e) {
+      } catch {
         // Ignore errors during cleanup
       }
     });
@@ -152,7 +151,7 @@ export default function MapComponent({
     circlesRefArr.current.forEach(circle => {
       try {
         circle.remove();
-      } catch (e) {
+      } catch {
         // Ignore errors during cleanup
       }
     });
@@ -162,7 +161,7 @@ export default function MapComponent({
     if (mapRef.current) {
       try {
         mapRef.current.remove();
-      } catch (e) {
+      } catch {
         // Ignore errors during cleanup
       }
       mapRef.current = null;

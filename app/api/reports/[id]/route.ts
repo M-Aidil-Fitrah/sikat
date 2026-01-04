@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { ReportStatus } from '@prisma/client';
 import { getReportByIdWithCoordinates } from '@/lib/postgis-helper';
 
 // GET /api/reports/[id] - Get single report

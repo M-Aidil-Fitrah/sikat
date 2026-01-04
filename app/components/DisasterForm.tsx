@@ -2,9 +2,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Camera, Upload, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import type { LatLngExpression, LeafletMouseEvent } from 'leaflet';
+import type { LeafletMouseEvent } from 'leaflet';
 import { createReport, uploadPhotos } from '@/lib/api';
 import type { TingkatKerusakan, Report } from '@/lib/types';
+import 'leaflet/dist/leaflet.css';
 
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
@@ -15,7 +16,21 @@ const TileLayer = dynamic(
   { ssr: false }
 );
 const Marker = dynamic(
-  () => import('react-leaflet').then((mod) => mod.Marker),
+  () => import('react-leaflet').then((mod) => {
+    // Fix default marker icon
+    if (typeof window !== 'undefined') {
+      import('leaflet').then((L) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        });
+      });
+    }
+    return mod.Marker;
+  }),
   { ssr: false }
 );
 
@@ -42,21 +57,20 @@ interface CapturedPhoto {
   file: File;
 }
 
-// Map click handler component with conditional import
-function MapClickHandlerInner({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
-  if (typeof window !== 'undefined') {
-    const { useMapEvents } = require('react-leaflet');
-    useMapEvents({
-      click: (e: LeafletMouseEvent) => {
-        onLocationSelect(e.latlng.lat, e.latlng.lng);
-      },
-    });
-  }
-  return null;
-}
-
+// Map click handler component - properly imported dynamically
 const MapClickHandler = dynamic(
-  () => Promise.resolve(MapClickHandlerInner),
+  () => import('react-leaflet').then((mod) => {
+    function MapClickHandlerComponent({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
+      const { useMapEvents } = mod;
+      useMapEvents({
+        click: (e: LeafletMouseEvent) => {
+          onLocationSelect(e.latlng.lat, e.latlng.lng);
+        },
+      });
+      return null;
+    }
+    return MapClickHandlerComponent;
+  }),
   { ssr: false }
 );
 
@@ -76,13 +90,12 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
   const [capturedPhotos, setCapturedPhotos] = useState<CapturedPhoto[]>([]);
   const [photoMode, setPhotoMode] = useState<'capture' | 'upload' | null>(null);
-  const [isCapturing, setIsCapturing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [loadingLocation, setLoadingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [showMap, setShowMap] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([5.5483, 95.3238]);
+  const [mapCenter] = useState<[number, number]>([5.5483, 95.3238]);
   const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');

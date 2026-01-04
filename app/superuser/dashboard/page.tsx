@@ -2,26 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Sidebar from '@/app/components/Sidebar';
+import * as XLSX from 'xlsx';
 
 // Force dynamic rendering for authentication
 export const dynamic = 'force-dynamic';
 import { 
-  Shield, 
-  LogOut, 
   CheckCircle2, 
   XCircle, 
   Clock, 
   MapPin, 
   User, 
-  Phone,
   AlertTriangle,
   FileText,
   Loader2,
   X,
-  Image as ImageIcon,
-  LayoutDashboard,
   Filter,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 
 interface Report {
@@ -54,6 +52,30 @@ export default function AdminDashboard() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Load sidebar state
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved !== null) {
+      setSidebarCollapsed(saved === "true");
+    }
+    
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("sidebar-collapsed");
+      if (saved !== null) {
+        setSidebarCollapsed(saved === "true");
+      }
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 100);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   // Check authentication on mount
   useEffect(() => {
@@ -181,6 +203,67 @@ export default function AdminDashboard() {
     setShowDetailModal(true);
   };
 
+  // Download reports as Excel
+  const downloadExcel = () => {
+    // Prepare data for Excel
+    const excelData = filteredReports.map((report, index) => ({
+      'No': index + 1,
+      'ID': report.id,
+      'Nama Objek': report.namaObjek,
+      'Jenis Kerusakan': report.jenisKerusakan,
+      'Tingkat Kerusakan': report.tingkatKerusakan,
+      'Lokasi (Desa/Kecamatan)': report.desaKecamatan,
+      'Koordinat Latitude': report.lat,
+      'Koordinat Longitude': report.lng,
+      'Nama Pelapor': report.namaPelapor,
+      'Kontak': report.kontak,
+      'Keterangan': report.keteranganKerusakan,
+      'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Disetujui' : 'Ditolak',
+      'Tanggal Lapor': new Date(new Date(report.submittedAt || report.createdAt).getTime() + (7 * 60 * 60 * 1000)).toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC'
+      }) + ' WIB',
+      'Jumlah Foto': report.fotoLokasi?.length || 0
+    }));
+
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    const colWidths = [
+      { wch: 5 },  // No
+      { wch: 8 },  // ID
+      { wch: 30 }, // Nama Objek
+      { wch: 20 }, // Jenis Kerusakan
+      { wch: 18 }, // Tingkat Kerusakan
+      { wch: 30 }, // Lokasi
+      { wch: 15 }, // Latitude
+      { wch: 15 }, // Longitude
+      { wch: 25 }, // Nama Pelapor
+      { wch: 15 }, // Kontak
+      { wch: 50 }, // Keterangan
+      { wch: 12 }, // Status
+      { wch: 30 }, // Tanggal
+      { wch: 12 }  // Jumlah Foto
+    ];
+    ws['!cols'] = colWidths;
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Bencana');
+
+    // Generate filename with current date
+    const today = new Date();
+    const filename = `Laporan_Bencana_${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
+  };
+
   // Statistik
   const stats = {
     total: reports.length,
@@ -220,44 +303,27 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-gray-200 flex flex-col fixed left-0 top-0 bottom-0 z-10">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-linear-to-br from-red-600 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
-              <Shield className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <span className="text-lg font-bold text-gray-900 block">Admin SIKAT</span>
-              <span className="text-xs text-gray-500">Dashboard Admin</span>
-            </div>
-          </div>
-        </div>
-        
-        <nav className="p-4 space-y-1 flex-1">
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-600 bg-red-50 rounded-xl font-medium transition-colors">
-            <LayoutDashboard className="w-5 h-5" />
-            Dashboard
-          </button>
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-xl font-medium transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            Logout
-          </button>
-        </div>
-      </aside>
+      <Sidebar isAdmin={true} />
 
       {/* Main Content */}
-      <main className="flex-1 ml-72">
+      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? "ml-20" : "ml-72"}`}>
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Admin</h1>
-            <p className="text-gray-600">Kelola dan verifikasi laporan bencana alam</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Admin</h1>
+                <p className="text-gray-600">Kelola dan verifikasi laporan bencana alam</p>
+              </div>
+              <button
+                onClick={downloadExcel}
+                disabled={filteredReports.length === 0}
+                className="flex items-center gap-2 px-5 py-2.5 bg-linear-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-5 h-5" />
+                Download Excel
+              </button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -397,8 +463,8 @@ export default function AdminDashboard() {
                               {report.jenisKerusakan}
                             </span>
                             <span className={`text-xs px-2 py-1 rounded-lg font-medium ${
-                              report.tingkatKerusakan === 'RINGAN' ? 'bg-green-100 text-green-700' :
-                              report.tingkatKerusakan === 'SEDANG' ? 'bg-yellow-100 text-yellow-700' :
+                              report.tingkatKerusakan === 'Ringan' || report.tingkatKerusakan === 'RINGAN' ? 'bg-green-100 text-green-700' :
+                              report.tingkatKerusakan === 'Sedang' || report.tingkatKerusakan === 'SEDANG' ? 'bg-amber-100 text-amber-700' :
                               'bg-red-100 text-red-700'
                             }`}>
                               {report.tingkatKerusakan}
@@ -419,26 +485,47 @@ export default function AdminDashboard() {
 
       {/* Detail Modal */}
       {showDetailModal && selectedReport && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedReport.namaObjek}</h2>
-                <p className="text-sm text-gray-600 mt-1">Detail Laporan #{selectedReport.id}</p>
-              </div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowDetailModal(false)}>
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header with Image/Gradient */}
+            <div className="relative h-48 shrink-0">
+              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 0 ? (
+                <div className="absolute inset-0">
+                  <img 
+                    src={selectedReport.fotoLokasi[0]} 
+                    alt={selectedReport.namaObjek}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
+                </div>
+              ) : (
+                <div className="h-full bg-linear-to-r from-red-600 to-orange-500"></div>
+              )}
+              
               <button
                 onClick={() => setShowDetailModal(false)}
-                className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors"
+                className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <X className="w-5 h-5" />
               </button>
+
+              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold mb-2 ${
+                  selectedReport.tingkatKerusakan === 'BERAT' || selectedReport.tingkatKerusakan === 'Berat' ? 'bg-red-500/90 text-white' :
+                  selectedReport.tingkatKerusakan === 'SEDANG' || selectedReport.tingkatKerusakan === 'Sedang' ? 'bg-amber-500/90 text-white' :
+                  'bg-green-500/90 text-white'
+                }`}>
+                  Kerusakan {selectedReport.tingkatKerusakan}
+                </span>
+                <h2 className="text-2xl font-bold drop-shadow-lg">{selectedReport.namaObjek}</h2>
+                <p className="text-white/90 text-sm mt-1">ID: #{selectedReport.id}</p>
+              </div>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 overflow-y-auto flex-1">
               {/* Status Badge */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-6">
                 <span className="text-sm text-gray-600">Status:</span>
                 <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold ${
                   selectedReport.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
@@ -450,97 +537,87 @@ export default function AdminDashboard() {
                 </span>
               </div>
 
-              {/* Info Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-600 mb-1">Pelapor</p>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <p className="font-semibold text-gray-900">{selectedReport.namaPelapor}</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-600 mb-1">Kontak</p>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <p className="font-semibold text-gray-900">{selectedReport.kontak}</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-600 mb-1">Lokasi</p>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <p className="font-semibold text-gray-900">{selectedReport.desaKecamatan}</p>
-                  </div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-600 mb-1">Waktu Laporan</p>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <p className="font-semibold text-gray-900">
-                      {new Date(new Date(selectedReport.submittedAt || selectedReport.createdAt).getTime() + (7 * 60 * 60 * 1000)).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'UTC'
-                      })} WIB
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Kerusakan Info */}
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Jenis Kerusakan</p>
-                  <p className="font-semibold text-gray-900 bg-gray-50 rounded-xl p-3">
-                    {selectedReport.jenisKerusakan}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Tingkat Kerusakan</p>
-                  <span className={`inline-block px-4 py-2 rounded-xl font-semibold ${
-                    selectedReport.tingkatKerusakan === 'RINGAN' ? 'bg-green-100 text-green-700' :
-                    selectedReport.tingkatKerusakan === 'SEDANG' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {selectedReport.tingkatKerusakan}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Keterangan</p>
-                  <p className="text-gray-900 bg-gray-50 rounded-xl p-4">
-                    {selectedReport.keteranganKerusakan}
-                  </p>
-                </div>
-              </div>
-
-              {/* Photos */}
-              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <ImageIcon className="w-5 h-5 text-gray-600" />
-                    <p className="text-sm font-semibold text-gray-900">Foto Kerusakan ({selectedReport.fotoLokasi.length})</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
+              {/* Photo Gallery */}
+              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 1 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Foto Dokumentasi</h3>
+                  <div className="grid grid-cols-4 gap-2">
                     {selectedReport.fotoLokasi.map((foto, idx) => (
-                      <img
+                      <button
                         key={idx}
-                        src={foto}
-                        alt={`Kerusakan ${idx + 1}`}
-                        className="w-full h-32 object-cover rounded-xl border border-gray-200 hover:scale-105 transition-transform cursor-pointer"
                         onClick={() => window.open(foto, '_blank')}
-                      />
+                        className="aspect-square rounded-lg overflow-hidden hover:opacity-80 transition-opacity"
+                      >
+                        <img src={foto} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* Info Grid */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <User className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Pelapor</span>
+                  </div>
+                  <p className="text-gray-900 font-medium">{selectedReport.namaPelapor}</p>
+                  <p className="text-gray-500 text-sm">{selectedReport.kontak}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <MapPin className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Lokasi</span>
+                  </div>
+                  <p className="text-gray-900 font-medium">{selectedReport.desaKecamatan}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Waktu Lapor</span>
+                  </div>
+                  <p className="text-gray-900 font-medium text-sm">
+                    {new Date(new Date(selectedReport.submittedAt || selectedReport.createdAt).getTime() + (7 * 60 * 60 * 1000)).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'UTC'
+                    })} WIB
+                  </p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-gray-500 mb-1">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span className="text-xs font-medium uppercase tracking-wider">Jenis Kerusakan</span>
+                  </div>
+                  <p className="text-gray-900 font-medium">{selectedReport.jenisKerusakan}</p>
+                </div>
+              </div>
+
+              {/* Keterangan */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Keterangan Kerusakan</h3>
+                <p className="text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">
+                  {selectedReport.keteranganKerusakan}
+                </p>
+              </div>
+
+              {/* Coordinates */}
+              <div className="bg-gray-900 rounded-xl p-4 text-white mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-gray-400 uppercase tracking-wider">Koordinat</span>
+                    <p className="font-mono text-sm mt-1">{selectedReport.lat.toFixed(6)}, {selectedReport.lng.toFixed(6)}</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Actions - Only for PENDING */}
               {selectedReport.status === 'PENDING' && (
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <div className="flex gap-3 p-4 bg-gray-50 rounded-xl">
                   <button
                     onClick={() => updateStatus(selectedReport.id, 'APPROVED')}
                     disabled={isUpdating === selectedReport.id}

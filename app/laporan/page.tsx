@@ -27,7 +27,7 @@ const toWIB = (date: Date | string): Date => {
   return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
 };
 
-// Format date in Indonesian
+// Format date in Indonesian (for future use if needed)
 const formatDate = (dateString: Date | string): string => {
   const wibDate = toWIB(dateString);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -48,8 +48,7 @@ const formatFullDate = (dateString: Date | string): string => {
   return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
 };
 
-type SortOption = 'newest' | 'oldest' | 'severity-high' | 'severity-low';
-type FilterSeverity = 'all' | 'Berat' | 'Sedang' | 'Ringan';
+type SortOption = 'newest' | 'oldest' | 'severity-high' | 'severity-medium' | 'severity-low';
 
 function LaporanContent() {
   const router = useRouter();
@@ -61,7 +60,6 @@ function LaporanContent() {
   
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterSeverity, setFilterSeverity] = useState<FilterSeverity>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
   const [showFilters, setShowFilters] = useState(false);
   
@@ -133,33 +131,32 @@ function LaporanContent() {
       );
     }
     
-    // Severity filter
-    if (filterSeverity !== "all") {
-      result = result.filter(r => r.tingkatKerusakan === filterSeverity);
+    // Exclusive severity filter - only show selected severity
+    if (sortBy === "severity-high") {
+      result = result.filter(r => r.tingkatKerusakan === "Berat");
+    } else if (sortBy === "severity-medium") {
+      result = result.filter(r => r.tingkatKerusakan === "Sedang");
+    } else if (sortBy === "severity-low") {
+      result = result.filter(r => r.tingkatKerusakan === "Ringan");
     }
     
     // Sorting
     result.sort((a, b) => {
       switch (sortBy) {
         case "newest":
+        case "severity-high":
+        case "severity-medium":
+        case "severity-low":
           return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
         case "oldest":
           return new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime();
-        case "severity-high": {
-          const severityOrder = { Berat: 0, Sedang: 1, Ringan: 2 };
-          return severityOrder[a.tingkatKerusakan] - severityOrder[b.tingkatKerusakan];
-        }
-        case "severity-low": {
-          const severityOrder = { Berat: 0, Sedang: 1, Ringan: 2 };
-          return severityOrder[b.tingkatKerusakan] - severityOrder[a.tingkatKerusakan];
-        }
         default:
           return 0;
       }
     });
     
     return result;
-  }, [reports, searchQuery, filterSeverity, sortBy]);
+  }, [reports, searchQuery, sortBy]);
 
   // Navigate to dashboard with coordinates
   const viewOnMap = (report: DisasterData) => {
@@ -205,11 +202,10 @@ function LaporanContent() {
 
   const clearFilters = () => {
     setSearchQuery("");
-    setFilterSeverity("all");
     setSortBy("newest");
   };
 
-  const hasActiveFilters = searchQuery || filterSeverity !== "all" || sortBy !== "newest";
+  const hasActiveFilters = searchQuery || sortBy !== "newest";
 
   return (
     <div className="min-h-screen bg-gray-50/80 flex">
@@ -240,60 +236,13 @@ function LaporanContent() {
                 <span className="hidden sm:inline">{isLoading ? "Memuat..." : "Refresh"}</span>
               </button>
             </div>
-
-            {/* Stats Row */}
-            <div className="flex items-center gap-4 mt-6">
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 rounded-full">
-                <span className="text-sm text-gray-600">Total</span>
-                <span className="text-sm font-bold text-gray-900">{stats.total}</span>
-              </div>
-              <div className="h-4 w-px bg-gray-300"></div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setFilterSeverity(filterSeverity === "Berat" ? "all" : "Berat")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm ${
-                    filterSeverity === "Berat" 
-                      ? "bg-red-100 text-red-700 ring-2 ring-red-500/20" 
-                      : "bg-red-50 text-red-600 hover:bg-red-100"
-                  }`}
-                >
-                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                  <span className="font-medium">{stats.berat}</span>
-                  <span className="text-red-600/70">Berat</span>
-                </button>
-                <button
-                  onClick={() => setFilterSeverity(filterSeverity === "Sedang" ? "all" : "Sedang")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm ${
-                    filterSeverity === "Sedang" 
-                      ? "bg-amber-100 text-amber-700 ring-2 ring-amber-500/20" 
-                      : "bg-amber-50 text-amber-600 hover:bg-amber-100"
-                  }`}
-                >
-                  <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                  <span className="font-medium">{stats.sedang}</span>
-                  <span className="text-amber-600/70">Sedang</span>
-                </button>
-                <button
-                  onClick={() => setFilterSeverity(filterSeverity === "Ringan" ? "all" : "Ringan")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all text-sm ${
-                    filterSeverity === "Ringan" 
-                      ? "bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500/20" 
-                      : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                  }`}
-                >
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                  <span className="font-medium">{stats.ringan}</span>
-                  <span className="text-emerald-600/70">Ringan</span>
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
         <div className="p-8">
           <div className="max-w-7xl mx-auto">
             {/* Search & Filters Bar */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm mb-6 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm mb-6 overflow-visible">
               <div className="p-4 flex items-center gap-4">
                 {/* Search */}
                 <div className="flex-1 relative">
@@ -331,12 +280,13 @@ function LaporanContent() {
                   </button>
 
                   {showFilters && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 p-2 z-30">
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 p-2 z-50">
                       {[
                         { value: "newest", label: "Terbaru" },
                         { value: "oldest", label: "Terlama" },
-                        { value: "severity-high", label: "Kerusakan Terberat" },
-                        { value: "severity-low", label: "Kerusakan Teringan" },
+                        { value: "severity-high", label: `Kerusakan Berat (${stats.berat})` },
+                        { value: "severity-medium", label: `Kerusakan Sedang (${stats.sedang})` },
+                        { value: "severity-low", label: `Kerusakan Ringan (${stats.ringan})` },
                       ].map((option) => (
                         <button
                           key={option.value}
@@ -381,17 +331,12 @@ function LaporanContent() {
                       </button>
                     </span>
                   )}
-                  {filterSeverity !== "all" && (
-                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs ${getSeverityColor(filterSeverity).badge}`}>
-                      {filterSeverity}
-                      <button onClick={() => setFilterSeverity("all")}>
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  )}
                   {sortBy !== "newest" && (
                     <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs">
-                      {sortBy === "oldest" ? "Terlama" : sortBy === "severity-high" ? "Terberat" : "Teringan"}
+                      {sortBy === "oldest" ? "Terlama" : 
+                       sortBy === "severity-high" ? "Kerusakan Berat" : 
+                       sortBy === "severity-medium" ? "Kerusakan Sedang" :
+                       "Kerusakan Ringan"}
                       <button onClick={() => setSortBy("newest")}>
                         <X className="w-3 h-3" />
                       </button>
@@ -718,7 +663,7 @@ function LaporanContent() {
       {/* Click outside to close filter dropdown */}
       {showFilters && (
         <div 
-          className="fixed inset-0 z-20" 
+          className="fixed inset-0 z-40" 
           onClick={() => setShowFilters(false)}
         />
       )}
