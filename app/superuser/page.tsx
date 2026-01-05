@@ -55,28 +55,32 @@ function SuperUserLoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-red-50 via-orange-50 to-amber-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 via-gray-50 to-zinc-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-linear-to-br from-red-600 to-orange-500 rounded-2xl shadow-lg mb-4">
-            <Shield className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center mb-6">
+            <img 
+              src="/logo-satgas-usk.png" 
+              alt="Logo SATGAS USK" 
+              className="h-24 w-auto sm:h-28"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin SIKAT</h1>
-          <p className="text-gray-600">Sistem Informasi Kerusakan Bencana Alam</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Admin SIKAT</h1>
+          <p className="text-sm sm:text-base text-gray-600">Sistem Informasi Kerusakan Bencana Alam Terpadu</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="bg-linear-to-r from-red-600 to-orange-600 px-6 py-4">
-            <h2 className="text-xl font-semibold text-white">Login Administrator</h2>
-            <p className="text-red-100 text-sm mt-1">Akses khusus admin untuk verifikasi laporan</p>
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-linear-to-r from-red-600 to-orange-600 px-6 py-5">
+            <h2 className="text-lg sm:text-xl font-semibold text-white">Login Administrator</h2>
+            <p className="text-red-50 text-xs sm:text-sm mt-1">Akses khusus admin untuk verifikasi laporan</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-red-900">Login Gagal</p>
@@ -96,7 +100,7 @@ function SuperUserLoginContent() {
                 required
                 value={formData.username}
                 onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                 placeholder="Masukkan username"
                 disabled={isLoading}
               />
@@ -113,7 +117,7 @@ function SuperUserLoginContent() {
                 required
                 value={formData.password}
                 onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                 placeholder="Masukkan password"
                 disabled={isLoading}
               />
@@ -123,7 +127,7 @@ function SuperUserLoginContent() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-linear-to-r from-red-600 to-orange-600 text-white font-semibold py-3 px-6 rounded-xl hover:from-red-700 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-linear-to-r from-red-600 to-orange-600 text-white font-semibold py-3.5 px-6 rounded-xl hover:from-red-700 hover:to-orange-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6"
             >
               {isLoading ? (
                 <>
@@ -131,14 +135,16 @@ function SuperUserLoginContent() {
                   Memproses...
                 </>
               ) : (
-                <>
-                  <Shield className="w-5 h-5" />
-                  Login
-                </>
+                'Login'
               )}
             </button>
           </form>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-xs sm:text-sm text-gray-500 mt-6">
+          Sistem Informasi Kerusakan Bencana Alam Terpadu
+        </p>
       </div>
     </div>
   );
