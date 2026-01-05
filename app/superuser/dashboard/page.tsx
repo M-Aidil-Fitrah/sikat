@@ -90,12 +90,49 @@ export default function AdminDashboard() {
     checkAuth();
   }, []);
 
+  // Auto logout setelah 1 jam tidak ada aktivitas
+  useEffect(() => {
+    let inactivityTimer: NodeJS.Timeout;
+    
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      // 1 jam = 3600000 ms
+      inactivityTimer = setTimeout(async () => {
+        console.log('Session timeout - logging out due to inactivity');
+        try {
+          await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+        router.push('/superuser?error=inactivity');
+      }, 3600000); // 1 hour
+    };
+
+    // Reset timer on user activity
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, resetTimer);
+    });
+
+    // Start timer initially
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      events.forEach(event => {
+        document.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [router]);
+
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me');
       
       if (response.status === 401) {
-        router.push('/superuser');
+        // Redirect dengan pesan error session expired
+        router.push('/superuser?error=session_expired');
         return;
       }
       
@@ -104,11 +141,11 @@ export default function AdminDashboard() {
         // Load reports after auth check succeeds
         loadReports();
       } else {
-        router.push('/superuser');
+        router.push('/superuser?error=session_expired');
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      router.push('/superuser');
+      router.push('/superuser?error=session_expired');
     } finally {
       setIsCheckingAuth(false);
     }
@@ -579,7 +616,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Photo Gallery */}
-              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 1 && (
+              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Foto Dokumentasi</h3>
                   <div className="grid grid-cols-4 gap-2">

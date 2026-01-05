@@ -22,6 +22,10 @@ function SuperUserLoginContent() {
     const errorParam = searchParams.get('error');
     if (errorParam === 'unauthorized') {
       setError('Silakan login terlebih dahulu untuk mengakses halaman tersebut');
+    } else if (errorParam === 'session_expired') {
+      setError('Sesi Anda telah berakhir. Silakan login kembali untuk melanjutkan.');
+    } else if (errorParam === 'inactivity') {
+      setError('Sesi Anda telah berakhir karena tidak ada aktivitas. Silakan login kembali.');
     }
   }, [searchParams]);
 

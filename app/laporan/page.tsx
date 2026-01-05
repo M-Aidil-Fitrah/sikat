@@ -552,7 +552,7 @@ function LaporanContent() {
             {/* Modal Content */}
             <div className="p-6 max-h-[calc(90vh-14rem)] overflow-y-auto">
               {/* Photo Gallery */}
-              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 1 && (
+              {selectedReport.fotoLokasi && selectedReport.fotoLokasi.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Foto Dokumentasi</h3>
                   <div className="grid grid-cols-4 gap-2">

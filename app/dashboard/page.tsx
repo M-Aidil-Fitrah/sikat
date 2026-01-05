@@ -533,7 +533,7 @@ function DashboardContent() {
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto flex-1">
               {/* Photo Gallery */}
-              {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 1 && (
+              {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 0 && (
                 <div className="mb-6">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Foto Dokumentasi</h3>
                   <div className="grid grid-cols-4 gap-2">
