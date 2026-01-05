@@ -716,7 +716,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   maxLength={15}
                   pattern="[0-9]*"
                 />
-                <p className="text-xs text-gray-500 mt-1">Contoh: 082323232332 (tanpa +62 atau 0)</p>
+                <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa +62)</p>
               </div>
 
               <div>
@@ -743,7 +743,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   value={formData.namaObjek}
                   onChange={(e) => setFormData(prev => ({ ...prev, namaObjek: e.target.value }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Contoh: Jembatan Krueng Raya"
+                  placeholder="Contoh: Jembatan Krueng Raya, Jalan Nasional ... , Rumah Sakit ..."
                 />
               </div>
 
@@ -757,7 +757,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   value={formData.jenisKerusakan}
                   onChange={(e) => setFormData(prev => ({ ...prev, jenisKerusakan: e.target.value }))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Contoh: Banjir - Rumah terendam, Longsor - Jalan tertutup"
+                  placeholder="Contoh: Rumah terendam banjir, Jalan tergenang, Jembatan rusak, Sawah terendam, Fasilitas umum terdampak"
                 />
               </div>
 
@@ -797,7 +797,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   onChange={(e) => setFormData(prev => ({ ...prev, keteranganKerusakan: e.target.value }))}
                   rows={4}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                  placeholder="Jelaskan kondisi kerusakan secara detail..."
+                  placeholder="Contoh: Air setinggi ±70 cm masuk ke rumah sejak malam hari. Perabotan rusak dan warga belum bisa beraktivitas normal. Saat ini membutuhkan bantuan air bersih, sembako, dan selimut."
                 />
               </div>
 

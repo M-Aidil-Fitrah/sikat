@@ -8,22 +8,19 @@ import { getReports } from "@/lib/api";
 import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus, Menu } from "lucide-react";
 import Sidebar from "@/app/components/Sidebar";
 
-// Convert UTC to WIB (GMT+7)
-const toWIB = (date: Date | string): Date => {
-  const utcDate = new Date(date);
-  // Add 7 hours for WIB timezone
-  return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
-};
-
-// Format detailed timestamp in WIB
+// Format detailed timestamp - langsung dari database (sudah WIB)
 const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
-  const wibDate = toWIB(dateString);
+  // Parse tanpa konversi timezone - langsung gunakan string dari database
+  const date = new Date(dateString);
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  const day = wibDate.getUTCDate();
-  const month = months[wibDate.getUTCMonth()];
-  const year = wibDate.getUTCFullYear();
-  const hours = wibDate.getUTCHours().toString().padStart(2, '0');
-  const minutes = wibDate.getUTCMinutes().toString().padStart(2, '0');
+  
+  // Gunakan UTC methods untuk membaca waktu yang sudah dalam WIB dari database
+  const day = date.getUTCDate();
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  
   return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes} WIB)`;
 };
 
@@ -161,7 +158,7 @@ function DashboardContent() {
               {/* Hamburger Menu - Mobile Only */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
                 aria-label="Toggle menu"
               >
                 <Menu className="w-5 h-5" />

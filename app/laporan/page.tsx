@@ -22,30 +22,16 @@ import {
   Menu
 } from "lucide-react";
 
-// Convert UTC to WIB (GMT+7)
-const toWIB = (date: Date | string): Date => {
-  const utcDate = new Date(date);
-  return new Date(utcDate.getTime() + (7 * 60 * 60 * 1000));
-};
-
-// Format date in Indonesian (for future use if needed)
-const formatDate = (dateString: Date | string): string => {
-  const wibDate = toWIB(dateString);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-  const day = wibDate.getUTCDate();
-  const month = months[wibDate.getUTCMonth()];
-  const year = wibDate.getUTCFullYear();
-  return `${day} ${month} ${year}`;
-};
-
+// Format date - langsung dari database (sudah WIB)
 const formatFullDate = (dateString: Date | string): string => {
-  const wibDate = toWIB(dateString);
+  const date = new Date(dateString);
   const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-  const day = wibDate.getUTCDate();
-  const month = months[wibDate.getUTCMonth()];
-  const year = wibDate.getUTCFullYear();
-  const hours = wibDate.getUTCHours().toString().padStart(2, '0');
-  const minutes = wibDate.getUTCMinutes().toString().padStart(2, '0');
+  // Gunakan UTC methods untuk membaca waktu yang sudah dalam WIB dari database
+  const day = date.getUTCDate();
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
   return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
 };
 
@@ -241,7 +227,7 @@ function LaporanContent() {
                 {/* Hamburger Menu - Mobile Only */}
                 <button
                   onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                  className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
                   aria-label="Toggle menu"
                 >
                   <Menu className="w-5 h-5" />
@@ -505,7 +491,7 @@ function LaporanContent() {
                               </button>
                               <button
                                 onClick={() => viewOnMap(report)}
-                                className="flex items-center gap-2 px-4 py-2 bg-linear-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md"
+                                className="flex items-center justify-center gap-2 px-4 py-2 bg-linear-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow-md"
                               >
                                 <MapIcon className="w-4 h-4" />
                                 Lihat di Peta

@@ -226,14 +226,16 @@ export default function AdminDashboard() {
       'Kontak': report.kontak,
       'Keterangan': report.keteranganKerusakan,
       'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Disetujui' : 'Ditolak',
-      'Tanggal Lapor': new Date(new Date(report.submittedAt || report.createdAt).getTime() + (7 * 60 * 60 * 1000)).toLocaleString('id-ID', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'UTC'
-      }) + ' WIB',
+      'Tanggal Lapor': (() => {
+        const date = new Date(report.submittedAt || report.createdAt);
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const day = date.getUTCDate();
+        const month = months[date.getUTCMonth()];
+        const year = date.getUTCFullYear();
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+      })(),
       'Jumlah Foto': report.fotoLokasi?.length || 0
     }));
 
@@ -558,7 +560,7 @@ export default function AdminDashboard() {
                   selectedReport.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
                   'bg-red-100 text-red-700'
                 }`}>
-                  {selectedReport.status === 'PENDING' ? '⏳ Menunggu Verifikasi' : 
+                  {selectedReport.status === 'PENDING' ? 'Menunggu Verifikasi' : 
                    selectedReport.status === 'APPROVED' ? '✓ Disetujui' : '✗ Ditolak'}
                 </span>
               </div>
@@ -604,14 +606,16 @@ export default function AdminDashboard() {
                     <span className="text-xs font-medium uppercase tracking-wider">Waktu Lapor</span>
                   </div>
                   <p className="text-gray-900 font-medium text-sm">
-                    {new Date(new Date(selectedReport.submittedAt || selectedReport.createdAt).getTime() + (7 * 60 * 60 * 1000)).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      timeZone: 'UTC'
-                    })} WIB
+                    {(() => {
+                      const date = new Date(selectedReport.submittedAt || selectedReport.createdAt);
+                      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                      const day = date.getUTCDate();
+                      const month = months[date.getUTCMonth()];
+                      const year = date.getUTCFullYear();
+                      const hours = date.getUTCHours().toString().padStart(2, '0');
+                      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                      return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+                    })()}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
