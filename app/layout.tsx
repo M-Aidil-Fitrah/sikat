@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "SIKAT - Sistem Informasi Kebencanaan Terpadu",
@@ -19,7 +13,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${plusJakarta.variable} antialiased`}>
+      <body suppressHydrationWarning className="antialiased">
         {children}
       </body>
     </html>
