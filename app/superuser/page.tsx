@@ -144,11 +144,6 @@ function SuperUserLoginContent() {
             </button>
           </form>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs sm:text-sm text-gray-500 mt-6">
-          Sistem Informasi Kerusakan Bencana Alam Terpadu
-        </p>
       </div>
     </div>
   );
