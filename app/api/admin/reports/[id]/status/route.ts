@@ -63,13 +63,17 @@ export async function PATCH(
     }
 
     // Update report status
+    // Create WIB date (UTC+7) to match how submittedAt/createdAt are stored
+    const wibDate = new Date(Date.now() + (7 * 60 * 60 * 1000));
+    
     const updatedReport = await prisma.report.update({
       where: { id: reportId },
       data: {
         status: status as ReportStatus,
-        reviewedAt: new Date(),
+        reviewedAt: wibDate,
         reviewedById: adminId,
         reviewNote: reviewNote || null,
+        updatedAt: wibDate,
       },
       include: {
         reviewedBy: {

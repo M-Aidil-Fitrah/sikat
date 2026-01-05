@@ -10,6 +10,9 @@ export async function autoApproveOldReports(): Promise<number> {
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
   try {
+    // Create WIB date (UTC+7) to match how submittedAt/createdAt are stored
+    const wibDate = new Date(Date.now() + (7 * 60 * 60 * 1000));
+    
     const result = await prisma.report.updateMany({
       where: {
         status: ReportStatus.PENDING,
@@ -20,8 +23,9 @@ export async function autoApproveOldReports(): Promise<number> {
       data: {
         status: ReportStatus.APPROVED,
         autoApproved: true,
-        reviewedAt: new Date(),
+        reviewedAt: wibDate,
         reviewNote: 'Auto-approved: Tidak ada tindakan admin dalam 3 hari',
+        updatedAt: wibDate,
       },
     });
 

@@ -39,6 +39,12 @@ interface Report {
   fotoLokasi: string[];
   submittedAt: string;
   createdAt: string;
+  reviewedAt?: string | null;
+  reviewedBy?: {
+    id: number;
+    name: string;
+    username: string;
+  } | null;
 }
 
 type StatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -274,6 +280,17 @@ export default function AdminDashboard() {
         const minutes = date.getUTCMinutes().toString().padStart(2, '0');
         return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
       })(),
+      'Tanggal Review': report.reviewedAt ? (() => {
+        const date = new Date(report.reviewedAt);
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const day = date.getUTCDate();
+        const month = months[date.getUTCMonth()];
+        const year = date.getUTCFullYear();
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+      })() : '-',
+      'Direview Oleh': report.reviewedBy ? report.reviewedBy.name : '-',
       'Jumlah Foto': report.fotoLokasi?.length || 0
     }));
 
@@ -535,6 +552,21 @@ export default function AdminDashboard() {
                               })}</span>
                             </span>
                           </div>
+                          {report.reviewedAt && report.status !== 'PENDING' && (
+                            <div className="text-xs text-gray-500 mb-2">
+                              <span className="font-medium">Direview:</span> {(() => {
+                                const date = new Date(report.reviewedAt);
+                                return date.toLocaleString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: 'UTC'
+                                });
+                              })()} WIB {report.reviewedBy && `oleh ${report.reviewedBy.name}`}
+                            </div>
+                          )}
 
                           <div className="flex items-center gap-2">
                             <span className="text-xs bg-gray-100 px-2 py-1 rounded-lg text-gray-700">
@@ -668,6 +700,29 @@ export default function AdminDashboard() {
                     })()}
                   </p>
                 </div>
+                {selectedReport.reviewedAt && selectedReport.status !== 'PENDING' && (
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <div className="flex items-center gap-2 text-blue-700 mb-1">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase tracking-wider">Waktu Review</span>
+                    </div>
+                    <p className="text-blue-900 font-medium text-sm">
+                      {(() => {
+                        const date = new Date(selectedReport.reviewedAt);
+                        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                        const day = date.getUTCDate();
+                        const month = months[date.getUTCMonth()];
+                        const year = date.getUTCFullYear();
+                        const hours = date.getUTCHours().toString().padStart(2, '0');
+                        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                        return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+                      })()}
+                    </p>
+                    {selectedReport.reviewedBy && (
+                      <p className="text-blue-700 text-xs mt-1">oleh {selectedReport.reviewedBy.name}</p>
+                    )}
+                  </div>
+                )}
                 <div className="bg-gray-50 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-gray-500 mb-1">
                     <AlertTriangle className="w-4 h-4" />
