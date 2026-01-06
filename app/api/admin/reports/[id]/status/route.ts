@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { ReportStatus } from '@prisma/client';
+import { ReportStatus, StatusTangani } from '@prisma/client';
 import { verifyToken } from '@/lib/jwt';
 
 // PATCH /api/admin/reports/[id]/status - Update report status (approve/reject)
@@ -40,7 +40,7 @@ export async function PATCH(
 
     const adminId = payload.userId;
 
-    const { status, reviewNote } = await request.json();
+    const { status, reviewNote, statusTangani } = await request.json();
 
     // Validate status
     if (!status || !Object.values(ReportStatus).includes(status)) {
@@ -66,15 +66,29 @@ export async function PATCH(
     // Create WIB date (UTC+7) to match how submittedAt/createdAt are stored
     const wibDate = new Date(Date.now() + (7 * 60 * 60 * 1000));
     
+    const updateData: {
+      status: ReportStatus;
+      reviewedAt: Date;
+      reviewedById: number;
+      reviewNote: string | null;
+      updatedAt: Date;
+      statusTangani?: StatusTangani;
+    } = {
+      status: status as ReportStatus,
+      reviewedAt: wibDate,
+      reviewedById: adminId,
+      reviewNote: reviewNote || null,
+      updatedAt: wibDate,
+    };
+
+    // Add statusTangani if provided
+    if (statusTangani) {
+      updateData.statusTangani = statusTangani;
+    }
+    
     const updatedReport = await prisma.report.update({
       where: { id: reportId },
-      data: {
-        status: status as ReportStatus,
-        reviewedAt: wibDate,
-        reviewedById: adminId,
-        reviewNote: reviewNote || null,
-        updatedAt: wibDate,
-      },
+      data: updateData,
       include: {
         reviewedBy: {
           select: {

@@ -16,6 +16,11 @@ export enum ReportStatus {
   REJECTED = 'REJECTED',
 }
 
+export enum StatusTangani {
+  SUDAH_DITANGANI = 'SUDAH_DITANGANI',
+  BELUM_DITANGANI = 'BELUM_DITANGANI',
+}
+
 // Main Report interface (dari database)
 export interface Report {
   id: number;
@@ -30,6 +35,7 @@ export interface Report {
   fotoLokasi: string[];
   keteranganKerusakan: string;
   status: ReportStatus;
+  statusTangani: StatusTangani;
   submittedAt: Date | string;
   reviewedAt?: Date | string | null;
   reviewedById?: number | null;
@@ -108,9 +114,37 @@ export interface LoginCredentials {
 export interface UpdateReportStatus {
   status: ReportStatus;
   reviewNote?: string;
+  statusTangani?: StatusTangani;
 }
 
 // For MapComponent - display format with computed fields
 export interface DisasterData extends Report {
   timestamp: string; // Computed: "2 jam lalu"
+  invalidReportsCount?: number; // Jumlah keberatan untuk badge
+}
+
+// Invalid Report interface (from database)
+export interface InvalidReport {
+  id: string;
+  reportId: number;
+  reason: string;
+  reporterName: string | null;
+  kontak: string | null;
+  createdAt: Date | string;
+  
+  // Relasi
+  report?: Report;
+}
+
+// Form input untuk submit invalid report
+export interface InvalidReportFormInput {
+  reportId: number;
+  reason: string;
+  reporterName?: string;
+  kontak?: string;
+}
+
+// API Response untuk invalid reports
+export interface InvalidReportWithReport extends InvalidReport {
+  report: Report;
 }

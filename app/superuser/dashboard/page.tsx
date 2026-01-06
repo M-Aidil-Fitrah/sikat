@@ -36,6 +36,7 @@ interface Report {
   lat: number;
   lng: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  statusTangani: 'SUDAH_DITANGANI' | 'BELUM_DITANGANI';
   fotoLokasi: string[];
   submittedAt: string;
   createdAt: string;
@@ -45,6 +46,17 @@ interface Report {
     name: string;
     username: string;
   } | null;
+  invalidReportsCount?: number;
+}
+
+interface InvalidReportData {
+  id: string;
+  reportId: number;
+  reason: string;
+  reporterName: string | null;
+  kontak: string | null;
+  createdAt: string;
+  report: Report;
 }
 
 type StatusFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -62,6 +74,9 @@ export default function AdminDashboard() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showInvalidReports, setShowInvalidReports] = useState(false);
+  const [invalidReports, setInvalidReports] = useState<InvalidReportData[]>([]);
+  const [isLoadingInvalidReports, setIsLoadingInvalidReports] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -240,9 +255,73 @@ export default function AdminDashboard() {
     }
   };
 
+  const updateStatusTangani = async (reportId: number, newStatusTangani: 'SUDAH_DITANGANI' | 'BELUM_DITANGANI') => {
+    try {
+      const currentReport = reports.find(r => r.id === reportId);
+      if (!currentReport) return;
+
+      const response = await fetch(`/api/admin/reports/${reportId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          status: currentReport.status,
+          statusTangani: newStatusTangani 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Gagal mengupdate status tangani');
+      }
+
+      // Show success message
+      alert(`Status penanganan berhasil diubah menjadi ${newStatusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani'}!`);
+      
+      // Reload data
+      await loadReports();
+    } catch (error) {
+      console.error('Error updating statusTangani:', error);
+      alert(`Gagal mengupdate status penanganan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const openDetail = (report: Report) => {
     setSelectedReport(report);
     setShowDetailModal(true);
+  };
+
+  const loadInvalidReports = async () => {
+    setIsLoadingInvalidReports(true);
+    try {
+      const response = await fetch('/api/invalid-reports');
+      
+      if (!response.ok) {
+        throw new Error('Gagal memuat keberatan');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data && Array.isArray(data.data)) {
+        setInvalidReports(data.data);
+      } else {
+        setInvalidReports([]);
+      }
+    } catch (error) {
+      console.error('Error loading invalid reports:', error);
+      alert('Gagal memuat keberatan. Silakan coba lagi.');
+    } finally {
+      setIsLoadingInvalidReports(false);
+    }
+  };
+
+  const toggleInvalidReports = () => {
+    if (!showInvalidReports) {
+      loadInvalidReports();
+    }
+    setShowInvalidReports(!showInvalidReports);
   };
 
   // Download reports as Excel
@@ -457,6 +536,107 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Invalid Reports Section */}
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-amber-200 overflow-hidden mb-6 sm:mb-8">
+            <button
+              onClick={toggleInvalidReports}
+              className="w-full p-4 sm:p-5 flex items-center justify-between hover:bg-amber-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+                </div>
+                <div className="text-left">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Laporan Keberatan</h2>
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    {invalidReports.length} keberatan dilaporkan oleh pengguna
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${showInvalidReports ? 'rotate-90' : ''}`} />
+            </button>
+
+            {showInvalidReports && (
+              <div className="border-t border-amber-100">
+                {isLoadingInvalidReports ? (
+                  <div className="p-12 text-center">
+                    <Loader2 className="w-12 h-12 text-amber-500 mx-auto mb-4 animate-spin" />
+                    <p className="text-gray-500">Memuat keberatan...</p>
+                  </div>
+                ) : invalidReports.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <CheckCircle2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Tidak ada keberatan</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-amber-100">
+                    {invalidReports.map((invalid) => (
+                      <div key={invalid.id} className="p-4 sm:p-5 hover:bg-amber-50 transition-colors">
+                        <div className="flex flex-col sm:flex-row justify-between gap-3 mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-1 rounded">
+                                Keberatan #{invalid.id.substring(0, 8)}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {(() => {
+                                  const date = new Date(invalid.createdAt);
+                                  const now = new Date();
+                                  const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+                                  if (diffHours < 1) return 'Baru saja';
+                                  if (diffHours < 24) return `${diffHours} jam lalu`;
+                                  return `${Math.floor(diffHours / 24)} hari lalu`;
+                                })()}
+                              </span>
+                            </div>
+                            <h3 className="font-semibold text-gray-900 mb-1">
+                              Laporan: {invalid.report.namaObjek}
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2">
+                              ID Laporan: #{invalid.reportId} • {invalid.report.desaKecamatan}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-amber-50 rounded-lg p-3 mb-3">
+                          <p className="text-xs font-semibold text-gray-700 mb-1">Alasan Keberatan:</p>
+                          <p className="text-sm text-gray-900">{invalid.reason}</p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 text-xs text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <User className="w-3.5 h-3.5" />
+                            <span>
+                              Pelapor Keberatan: {invalid.reporterName || 'Anonim'}
+                            </span>
+                          </div>
+                          {invalid.kontak && (
+                            <div className="flex items-center gap-1">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                              <span>Kontak: {invalid.kontak}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-amber-200">
+                          <button
+                            onClick={() => openDetail(invalid.report)}
+                            className="text-sm font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                          >
+                            Lihat Detail Laporan
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Filter */}
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 mb-4 sm:mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -570,6 +750,23 @@ export default function AdminDashboard() {
                             }`}>
                               {report.tingkatKerusakan}
                             </span>
+                            {/* Status Tangani Dropdown */}
+                            <select
+                              value={report.statusTangani}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                updateStatusTangani(report.id, e.target.value as 'SUDAH_DITANGANI' | 'BELUM_DITANGANI');
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`text-xs px-2 py-1 rounded-lg font-medium border cursor-pointer ${
+                                report.statusTangani === 'SUDAH_DITANGANI' 
+                                  ? 'bg-blue-100 text-blue-700 border-blue-300' 
+                                  : 'bg-gray-100 text-gray-700 border-gray-300'
+                              }`}
+                            >
+                              <option value="BELUM_DITANGANI">Belum Ditangani</option>
+                              <option value="SUDAH_DITANGANI">Sudah Ditangani</option>
+                            </select>
                           </div>
                         </div>
                       </div>

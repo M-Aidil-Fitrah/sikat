@@ -37,11 +37,24 @@ export async function GET(request: NextRequest) {
 
     const usersMap = new Map(users.map(u => [u.id, u]));
 
+    // Get invalid reports count per report
+    const invalidReportCounts = await prisma.invalidReport.groupBy({
+      by: ['reportId'],
+      _count: {
+        id: true
+      }
+    });
+
+    const invalidReportCountsMap = new Map(
+      invalidReportCounts.map((irc: { reportId: number; _count: { id: number } }) => [irc.reportId, irc._count.id])
+    );
+
     // Transform data untuk compatibility dengan frontend
     const transformedReports = reports.map((report) => ({
       ...report,
       timestamp: getRelativeTime(report.submittedAt),
       reviewedBy: report.reviewedById ? usersMap.get(report.reviewedById) || null : null,
+      invalidReportsCount: invalidReportCountsMap.get(report.id) || 0,
     }));
 
     return NextResponse.json({
@@ -109,6 +122,7 @@ export async function POST(request: NextRequest) {
           "keteranganKerusakan",
           "fotoLokasi",
           status,
+          "statusTangani",
           "autoApproved",
           "submittedAt",
           "createdAt",
@@ -124,6 +138,7 @@ export async function POST(request: NextRequest) {
           ${keteranganKerusakan},
           ${fotoLokasi}::text[],
           'PENDING'::"ReportStatus",
+          'BELUM_DITANGANI'::"StatusTangani",
           false,
           NOW(),
           NOW(),

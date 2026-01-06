@@ -31,6 +31,7 @@ model Report {
   fotoLokasi          String[]
   keteranganKerusakan String
   status              ReportStatus             @default(PENDING)
+  statusTangani       StatusTangani            @default(BELUM_DITANGANI)
   submittedAt         DateTime                 @default(now())
   reviewedAt          DateTime?
   reviewedById        Int?
@@ -41,11 +42,26 @@ model Report {
   kontak              String
   location            Unsupported("geometry")?
   reviewedBy          User?                    @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  invalidReports      InvalidReport[]
 
   @@index([status])
   @@index([submittedAt])
   @@index([location], type: Gist)
   @@map("reports")
+}
+
+model InvalidReport {
+  id            String   @id @default(cuid())
+  reportId      Int
+  reason        String   @db.Text
+  reporterName  String?
+  kontak        String?
+  createdAt     DateTime @default(now())
+  report        Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([createdAt])
+  @@map("invalid_reports")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -67,4 +83,9 @@ enum ReportStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum StatusTangani {
+  SUDAH_DITANGANI
+  BELUM_DITANGANI
 }
