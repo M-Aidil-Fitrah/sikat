@@ -9,37 +9,37 @@ const steps = [
     number: "01",
     title: "Buka Dashboard",
     description: "Tekan tombol Dashboard pada menu navigasi untuk memulai",
-    image: "/foto/IMG_7503.jpg",
+    image: "/foto/cara-pakai/1.png",
   },
   {
     number: "02",
     title: "Tambah Laporan",
     description: "Klik tombol tambah laporan yang tersedia di dashboard",
-    image: "/foto/cara-pakai/2.jpeg",
+    image: "/foto/cara-pakai/2.png",
   },
   {
     number: "03",
     title: "Unggah Foto",
     description: "Pilih ambil foto langsung atau unggah foto dari galeri",
-    image: "/foto/cara-pakai/3.jpeg",
+    image: "/foto/cara-pakai/3.png",
   },
   {
     number: "04",
     title: "Isi Detail Lokasi",
     description: "Tentukan lokasi secara otomatis atau manual pada peta",
-    image: "/foto/IMG_7527.jpg",
+    image: "/foto/cara-pakai/4.png",
   },
   {
     number: "05",
     title: "Lengkapi Form",
     description: "Isi semua detail form laporan dengan lengkap dan akurat",
-    image: "/foto/IMG_7528.jpg",
+    image: "/foto/cara-pakai/5.png",
   },
   {
     number: "06",
     title: "Kirim & Tunggu",
     description: "Kirim laporan dan tunggu verifikasi dari admin",
-    image: "/foto/IMG_7529.jpg",
+    image: "/foto/cara-pakai/6.png",
   },
 ];
 
@@ -74,7 +74,7 @@ export default function HowToReport() {
     <section
       id="cara-melapor"
       ref={sectionRef}
-      className="relative py-16 sm:py-20 md:py-28 bg-white overflow-hidden"
+      className="relative py-12 sm:py-14 md:py-16 bg-white overflow-hidden"
     >
       {/* Background Elements */}
       <div className="absolute top-0 left-0 w-full h-px bg-linear-to-r from-transparent via-gray-200 to-transparent" />

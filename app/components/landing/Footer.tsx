@@ -24,7 +24,7 @@ export default function Footer() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
-          className="py-12 sm:py-16 grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12"
+          className="pt-4 pb-8 sm:pt-6 sm:pb-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12"
         >
           {/* Brand */}
           <div className="space-y-6">

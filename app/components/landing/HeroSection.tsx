@@ -88,8 +88,8 @@ export default function HeroSection() {
                 <div className="text-sm text-gray-500 mt-1">Akses Informasi</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">23</div>
-                <div className="text-sm text-gray-500 mt-1">Kabupaten/Kota</div>
+                <div className="text-2xl sm:text-3xl font-bold text-gray-900">18</div>
+                <div className="text-sm text-gray-500 mt-1">Kabupaten/Kota Terdampak</div>
               </div>
               <div className="text-center lg:text-left">
                 <div className="text-2xl sm:text-3xl font-bold text-red-600">Live</div>

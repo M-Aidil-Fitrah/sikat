@@ -34,14 +34,14 @@ export default function GallerySection() {
   const masonryHeight = useMemo(() => {
     // Approximate height calculation based on items
     const totalHeight = galleryImages.reduce((acc, img) => acc + img.height / 2, 0);
-    return Math.ceil(totalHeight / 3) + 100; // Divide by approximate columns + padding
+    return Math.ceil(totalHeight / 3) - 150; // Divide by approximate columns and reduce extra space
   }, []);
 
   return (
     <section
       id="galeri"
       ref={sectionRef}
-      className="relative py-16 sm:py-20 md:py-24 pb-8 sm:pb-12 bg-linear-to-b from-white to-gray-50 overflow-hidden"
+      className="relative pt-12 sm:pt-14 md:pt-16 pb-0 bg-linear-to-b from-white to-gray-50 overflow-hidden"
     >
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
@@ -49,7 +49,7 @@ export default function GallerySection() {
           initial={{ opacity: 0, y: 30 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
-          className="text-center mb-12 sm:mb-16 md:mb-20"
+          className="text-center mb-12"
         >
           <span className="text-red-600 text-sm font-semibold tracking-wider uppercase">
             Dokumentasi
