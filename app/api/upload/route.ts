@@ -53,8 +53,8 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(bytes);
       await writeFile(filepath, buffer);
 
-      // Store relative path for database
-      uploadedFiles.push(`/uploads/reports/${filename}`);
+      // Store API path for database (works in both dev and production)
+      uploadedFiles.push(`/api/uploads/reports/${filename}`);
     }
 
     return NextResponse.json({

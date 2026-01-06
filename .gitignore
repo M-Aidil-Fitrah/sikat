@@ -46,4 +46,9 @@ public/uploads/reports/*jpeg
 public/uploads/reports/*png
 public/uploads/reports/*heic
 
+public/api/uploads/reports/*jpg
+public/api/uploads/reports/*jpeg
+public/api/uploads/reports/*png
+public/api/uploads/reports/*heic
+
 scripts/
