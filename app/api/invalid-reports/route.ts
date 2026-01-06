@@ -91,7 +91,8 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Count per report
+    // Count per report (untuk future use atau analytics)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const reportCounts = await prisma.invalidReport.groupBy({
       by: ['reportId'],
       _count: {

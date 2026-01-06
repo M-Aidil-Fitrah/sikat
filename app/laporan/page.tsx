@@ -598,7 +598,30 @@ function LaporanContent() {
                     <span className="text-xs font-medium uppercase tracking-wider">Pelapor</span>
                   </div>
                   <p className="text-gray-900 font-medium">{selectedReport.namaPelapor}</p>
-                  <p className="text-gray-500 text-sm">{selectedReport.kontak}</p>
+                </div>
+                <div className={`rounded-xl p-4 col-span-2 ${
+                  selectedReport.statusTangani === 'SUDAH_DITANGANI' 
+                    ? 'bg-green-50 border border-green-200' 
+                    : 'bg-amber-50 border border-amber-200'
+                }`}>
+                  <div className={`flex items-center gap-2 mb-1 ${
+                    selectedReport.statusTangani === 'SUDAH_DITANGANI' ? 'text-green-700' : 'text-amber-700'
+                  }`}>
+                    {selectedReport.statusTangani === 'SUDAH_DITANGANI' ? (
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                      </svg>
+                    ) : (
+                      <Clock className="w-4 h-4" />
+                    )}
+                    <span className="text-xs font-medium uppercase tracking-wider">Status Penanganan</span>
+                  </div>
+                  <p className={`font-semibold ${
+                    selectedReport.statusTangani === 'SUDAH_DITANGANI' ? 'text-green-900' : 'text-amber-900'
+                  }`}>
+                    {selectedReport.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani'}
+                  </p>
                 </div>
               </div>
 

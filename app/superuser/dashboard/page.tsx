@@ -21,7 +21,10 @@ import {
   ChevronRight,
   Download,
   Menu,
-  RefreshCw
+  RefreshCw,
+  AlertCircle,
+  Eye,
+  ChevronUp
 } from 'lucide-react';
 
 interface Report {
@@ -33,8 +36,8 @@ interface Report {
   jenisKerusakan: string;
   tingkatKerusakan: string;
   keteranganKerusakan: string;
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   statusTangani: 'SUDAH_DITANGANI' | 'BELUM_DITANGANI';
   fotoLokasi: string[];
@@ -77,6 +80,15 @@ export default function AdminDashboard() {
   const [showInvalidReports, setShowInvalidReports] = useState(false);
   const [invalidReports, setInvalidReports] = useState<InvalidReportData[]>([]);
   const [isLoadingInvalidReports, setIsLoadingInvalidReports] = useState(false);
+  const [selectedReportInvalidReports, setSelectedReportInvalidReports] = useState<Array<{
+    id: string;
+    reason: string;
+    reporterName: string | null;
+    kontak: string | null;
+    createdAt: string;
+  }>>([]);
+  const [isLoadingSelectedInvalidReports, setIsLoadingSelectedInvalidReports] = useState(false);
+  const [showInvalidReportsDetail, setShowInvalidReportsDetail] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -109,6 +121,7 @@ export default function AdminDashboard() {
   // Check authentication on mount
   useEffect(() => {
     checkAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto logout setelah 1 jam tidak ada aktivitas
@@ -181,6 +194,12 @@ export default function AdminDashboard() {
     }
   }, [statusFilter, reports]);
 
+  useEffect(() => {
+    if (showDetailModal && selectedReport && selectedReport.invalidReportsCount && selectedReport.invalidReportsCount > 0) {
+      loadInvalidReportsForReport(selectedReport.id);
+    }
+  }, [showDetailModal, selectedReport]);
+
   const loadReports = async () => {
     try {
       console.log('Loading reports from API...');
@@ -210,6 +229,9 @@ export default function AdminDashboard() {
         console.error('Invalid data format:', data);
         setReports([]);
       }
+
+      // Load invalid reports bersamaan
+      await loadInvalidReports();
     } catch (error) {
       console.error('Error loading reports:', error);
       alert('Gagal memuat laporan. Silakan coba lagi.');
@@ -299,7 +321,7 @@ export default function AdminDashboard() {
       const response = await fetch('/api/invalid-reports');
       
       if (!response.ok) {
-        throw new Error('Gagal memuat keberatan');
+        throw new Error('Gagal memuat Laporan tidak valid');
       }
 
       const data = await response.json();
@@ -311,22 +333,44 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error('Error loading invalid reports:', error);
-      alert('Gagal memuat keberatan. Silakan coba lagi.');
+      alert('Gagal memuat laporan tidak valid. Silakan coba lagi.');
     } finally {
       setIsLoadingInvalidReports(false);
     }
   };
 
   const toggleInvalidReports = () => {
-    if (!showInvalidReports) {
-      loadInvalidReports();
-    }
     setShowInvalidReports(!showInvalidReports);
+  };
+
+  const loadInvalidReportsForReport = async (reportId: number) => {
+    setIsLoadingSelectedInvalidReports(true);
+    setShowInvalidReportsDetail(false); // Close detail saat mulai load baru
+    try {
+      const response = await fetch(`/api/invalid-reports/${reportId}`);
+      
+      if (!response.ok) {
+        throw new Error('Gagal memuat laporan tidak valid');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.data && Array.isArray(data.data)) {
+        setSelectedReportInvalidReports(data.data);
+      } else {
+        setSelectedReportInvalidReports([]);
+      }
+    } catch (error) {
+      console.error('Error loading invalid reports for report:', error);
+      setSelectedReportInvalidReports([]);
+    } finally {
+      setIsLoadingSelectedInvalidReports(false);
+    }
   };
 
   // Download reports as Excel
   const downloadExcel = () => {
-    // Prepare data for Excel
+    // Prepare data for Laporan Kebencanaan
     const excelData = filteredReports.map((report, index) => ({
       'No': index + 1,
       'ID': report.id,
@@ -334,12 +378,13 @@ export default function AdminDashboard() {
       'Jenis Kerusakan': report.jenisKerusakan,
       'Tingkat Kerusakan': report.tingkatKerusakan,
       'Lokasi (Desa/Kecamatan)': report.desaKecamatan,
-      'Koordinat Latitude': report.lat,
-      'Koordinat Longitude': report.lng,
+      'Koordinat Latitude': report.lat ?? 'N/A',
+      'Koordinat Longitude': report.lng ?? 'N/A',
       'Nama Pelapor': report.namaPelapor,
       'Kontak': report.kontak,
       'Keterangan': report.keteranganKerusakan,
       'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Disetujui' : 'Ditolak',
+      'Status Penanganan': report.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani',
       'Tanggal Lapor': (() => {
         const date = new Date(report.submittedAt || report.createdAt);
         const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -364,10 +409,31 @@ export default function AdminDashboard() {
       'Jumlah Foto': report.fotoLokasi?.length || 0
     }));
 
-    // Create worksheet
+    // Prepare data for Laporan Tidak Valid
+    const invalidReportsData = invalidReports.map((ir, index) => ({
+      'No': index + 1,
+      'ID Laporan Tidak Valid': ir.id,
+      'ID Laporan': ir.reportId,
+      'Nama Objek Laporan': ir.report?.namaObjek || 'N/A',
+      'Alasan/Komentar': ir.reason,
+      'Nama Pelapor': ir.reporterName || 'Anonim',
+      'Kontak Pelapor': ir.kontak || '-',
+      'Tanggal Lapor Tidak Valid': (() => {
+        const date = new Date(ir.createdAt);
+        const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const day = date.getUTCDate();
+        const month = months[date.getUTCMonth()];
+        const year = date.getUTCFullYear();
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+      })()
+    }));
+
+    // Create worksheet for Laporan Kebencanaan
     const ws = XLSX.utils.json_to_sheet(excelData);
 
-    // Set column widths
+    // Set column widths for Laporan Kebencanaan
     const colWidths = [
       { wch: 5 },  // No
       { wch: 8 },  // ID
@@ -381,14 +447,34 @@ export default function AdminDashboard() {
       { wch: 15 }, // Kontak
       { wch: 50 }, // Keterangan
       { wch: 12 }, // Status
-      { wch: 30 }, // Tanggal
+      { wch: 20 }, // Status Penanganan
+      { wch: 30 }, // Tanggal Lapor
+      { wch: 30 }, // Tanggal Review
+      { wch: 25 }, // Direview Oleh
       { wch: 12 }  // Jumlah Foto
     ];
     ws['!cols'] = colWidths;
 
+    // Create worksheet for Laporan Tidak Valid
+    const wsInvalid = XLSX.utils.json_to_sheet(invalidReportsData);
+
+    // Set column widths for Laporan Tidak Valid
+    const colWidthsInvalid = [
+      { wch: 5 },  // No
+      { wch: 25 }, // ID Laporan Tidak Valid
+      { wch: 10 }, // ID Laporan
+      { wch: 30 }, // Nama Objek Laporan
+      { wch: 60 }, // Alasan/Komentar
+      { wch: 25 }, // Nama Pelapor
+      { wch: 15 }, // Kontak Pelapor
+      { wch: 30 }  // Tanggal
+    ];
+    wsInvalid['!cols'] = colWidthsInvalid;
+
     // Create workbook
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Bencana');
+    XLSX.utils.book_append_sheet(wb, ws, 'Laporan Kebencanaan');
+    XLSX.utils.book_append_sheet(wb, wsInvalid, 'Laporan Tidak Valid');
 
     // Generate filename with current date
     const today = new Date();
@@ -547,9 +633,9 @@ export default function AdminDashboard() {
                   <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
                 </div>
                 <div className="text-left">
-                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Laporan Keberatan</h2>
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Laporan Tidak Valid</h2>
                   <p className="text-xs sm:text-sm text-gray-600">
-                    {invalidReports.length} keberatan dilaporkan oleh pengguna
+                    {invalidReports.length} Laporan Tidak Valid dilaporkan oleh pengguna
                   </p>
                 </div>
               </div>
@@ -561,12 +647,12 @@ export default function AdminDashboard() {
                 {isLoadingInvalidReports ? (
                   <div className="p-12 text-center">
                     <Loader2 className="w-12 h-12 text-amber-500 mx-auto mb-4 animate-spin" />
-                    <p className="text-gray-500">Memuat keberatan...</p>
+                    <p className="text-gray-500">Memuat laporan tidak valid...</p>
                   </div>
                 ) : invalidReports.length === 0 ? (
                   <div className="p-12 text-center">
                     <CheckCircle2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Tidak ada keberatan</p>
+                    <p className="text-gray-500">Tidak ada laporan tidak valid</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-amber-100">
@@ -576,7 +662,7 @@ export default function AdminDashboard() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-xs font-semibold text-amber-600 bg-amber-100 px-2 py-1 rounded">
-                                Keberatan #{invalid.id.substring(0, 8)}
+                                Laporan tidak valid #{invalid.id.substring(0, 8)}
                               </span>
                               <span className="text-xs text-gray-500">
                                 {(() => {
@@ -599,7 +685,7 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="bg-amber-50 rounded-lg p-3 mb-3">
-                          <p className="text-xs font-semibold text-gray-700 mb-1">Alasan Keberatan:</p>
+                          <p className="text-xs font-semibold text-gray-700 mb-1">Alasan Laporan Tidak Valid:</p>
                           <p className="text-sm text-gray-900">{invalid.reason}</p>
                         </div>
 
@@ -607,7 +693,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-1">
                             <User className="w-3.5 h-3.5" />
                             <span>
-                              Pelapor Keberatan: {invalid.reporterName || 'Anonim'}
+                              Pelapor: {invalid.reporterName || 'Anonim'}
                             </span>
                           </div>
                           {invalid.kontak && (
@@ -693,6 +779,7 @@ export default function AdminDashboard() {
                         {/* Content */}
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">#{report.id}</span>
                             <h3 className="font-semibold text-gray-900 group-hover:text-red-600 transition-colors">
                               {report.namaObjek}
                             </h3>
@@ -918,6 +1005,34 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-gray-900 font-medium">{selectedReport.jenisKerusakan}</p>
                 </div>
+                {selectedReport.invalidReportsCount && selectedReport.invalidReportsCount > 0 && (
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <div className="flex items-center gap-2 text-amber-700 mb-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-xs font-medium uppercase tracking-wider">Laporan Tidak Valid</span>
+                    </div>
+                    <p className="text-amber-900 font-bold text-lg mb-2">
+                      {selectedReport.invalidReportsCount} Laporan
+                    </p>
+                    <button
+                      onClick={() => setShowInvalidReportsDetail(!showInvalidReportsDetail)}
+                      disabled={isLoadingSelectedInvalidReports}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoadingSelectedInvalidReports ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Memuat...
+                        </>
+                      ) : (
+                        <>
+                          {showInvalidReportsDetail ? <ChevronUp className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showInvalidReportsDetail ? 'Sembunyikan Detail' : 'Lihat Detail'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Keterangan */}
@@ -928,12 +1043,57 @@ export default function AdminDashboard() {
                 </p>
               </div>
 
+              {/* Invalid Reports Detail (Expandable) */}
+              {showInvalidReportsDetail && selectedReportInvalidReports.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-semibold text-amber-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    Detail Laporan Tidak Valid ({selectedReportInvalidReports.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedReportInvalidReports.map((ir) => (
+                      <div key={ir.id} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div>
+                            <span className="text-xs font-semibold text-amber-700 block">
+                              {ir.reporterName || 'Anonim'}
+                            </span>
+                            {ir.kontak && (
+                              <span className="text-xs text-amber-600">
+                                Kontak: {ir.kontak}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-amber-600">
+                            {(() => {
+                              const date = new Date(ir.createdAt);
+                              const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                              const day = date.getUTCDate();
+                              const month = months[date.getUTCMonth()];
+                              const year = date.getUTCFullYear();
+                              const hours = date.getUTCHours().toString().padStart(2, '0');
+                              const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                              return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
+                            })()}
+                          </span>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 mt-2">
+                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            {ir.reason}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Coordinates */}
               <div className="bg-gray-900 rounded-xl p-4 text-white mb-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs text-gray-400 uppercase tracking-wider">Koordinat</span>
-                    <p className="font-mono text-sm mt-1">{selectedReport.lat.toFixed(6)}, {selectedReport.lng.toFixed(6)}</p>
+                    <p className="font-mono text-sm mt-1">{selectedReport.lat?.toFixed(6) ?? 'N/A'}, {selectedReport.lng?.toFixed(6) ?? 'N/A'}</p>
                   </div>
                 </div>
               </div>

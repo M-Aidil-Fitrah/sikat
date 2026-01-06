@@ -9,7 +9,8 @@ import {
   ArrowLeft, 
   ChevronLeft, 
   ChevronRight,
-  LogOut
+  LogOut,
+  AlertTriangle
 } from "lucide-react";
 
 interface SidebarProps {
@@ -76,6 +77,11 @@ export default function Sidebar({
       label: "Dashboard Admin",
       href: "/superuser/dashboard",
       icon: LayoutDashboard,
+    },
+    {
+      label: "Laporan Tidak Valid",
+      href: "/superuser/invalid-reports",
+      icon: AlertTriangle,
     },
   ] : [
     {
