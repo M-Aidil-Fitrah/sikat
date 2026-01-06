@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useInView } from "motion/react";
 import { useRef } from "react";
+import { MapPin, Phone, Mail } from "lucide-react";
 
 export default function Footer() {
   const footerRef = useRef<HTMLElement>(null);
@@ -24,7 +25,7 @@ export default function Footer() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] as const }}
-          className="pt-4 pb-8 sm:pt-6 sm:pb-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12"
+          className="pt-16 pb-8 sm:pt-16 sm:pb-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12"
         >
           {/* Brand */}
           <div className="space-y-6">
@@ -37,15 +38,14 @@ export default function Footer() {
                 />
               </div>
               <div>
-                <span className="text-xl font-bold text-gray-900">SATGAS USK - SIKAT</span>
+                <span className="text-xl font-bold text-gray-900">GEOTAGGING</span>
                 <p className="text-xs text-gray-600 tracking-wider">
-                  Sistem Kebencanaan Terpadu
+                  SATGAS USK
                 </p>
               </div>
             </Link>
             <p className="text-gray-600 leading-relaxed text-sm max-w-xs">
-              Platform pelaporan dan monitoring bencana alam terintegrasi untuk
-              wilayah Aceh dan sekitarnya.
+              Aplikasi berbasis WebGIS untuk mengumpulkan, memetakan, dan memvisualisasikan laporan kondisi infrastruktur terdampak bencana.
             </p>
           </div>
 
@@ -71,22 +71,6 @@ export default function Footer() {
                   Dashboard
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="#fitur"
-                  className="text-gray-600 hover:text-red-600 transition-colors duration-300 text-sm"
-                >
-                  Fitur
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#galeri"
-                  className="text-gray-600 hover:text-red-600 transition-colors duration-300 text-sm"
-                >
-                  Galeri
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -101,25 +85,30 @@ export default function Footer() {
                 <p className="text-gray-600 text-sm leading-relaxed">
                   Gedung Tsunami and Disaster Mitigation Research Center (TDMRC) Lantai 1, Universitas Syiah Kuala.
                 </p>
+                <div className="flex items-start gap-2 mt-2">
+                  <MapPin className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Jalan Hamzah Fansuri No. 8, Kopelma Darussalam, Banda Aceh, Indonesia
+                  </p>
+                </div>
               </div>
               
-              <div>
-                <p className="text-gray-900 font-semibold text-sm mb-1">Call Center</p>
-                <p className="text-gray-600 text-sm">0851 2229 6004</p>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-500 shrink-0" />
+                <div>
+                  <p className="text-gray-900 font-semibold text-sm">Call Center</p>
+                  <p className="text-gray-600 text-sm">0851 2229 6004</p>
+                </div>
               </div>
               
-              <div>
-                <p className="text-gray-900 font-semibold text-sm mb-1">Email</p>
-                <a href="mailto:satgas-senyar@usk.ac.id" className="text-red-600 hover:text-red-700 text-sm transition-colors">
-                  satgas-senyar@usk.ac.id
-                </a>
-              </div>
-              
-              <div>
-                <p className="text-gray-900 font-semibold text-sm mb-1">Alamat</p>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Jalan Hamzah Fansuri No. 8, Kopelma Darussalam, Banda Aceh, Indonesia
-                </p>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-gray-500 shrink-0" />
+                <div>
+                  <p className="text-gray-900 font-semibold text-sm">Email</p>
+                  <a href="mailto:satgas-senyar@usk.ac.id" className="text-red-600 hover:text-red-700 text-sm transition-colors">
+                    satgas-senyar@usk.ac.id
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -133,7 +122,7 @@ export default function Footer() {
           className="py-6 border-t border-gray-200"
         >
           <p className="text-gray-500 text-sm text-center">
-            &copy; {currentYear} SIKAT - Sistem Informasi Kebencanaan Terpadu Aceh
+            &copy; {currentYear} SATGAS USK - Geotagging
           </p>
         </motion.div>
       </div>

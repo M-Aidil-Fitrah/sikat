@@ -240,15 +240,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/superuser');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
   const openDetail = (report: Report) => {
     setSelectedReport(report);
     setShowDetailModal(true);

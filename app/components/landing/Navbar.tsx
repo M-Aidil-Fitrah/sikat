@@ -41,10 +41,10 @@ export default function Navbar() {
               />
               <div className="hidden sm:block">
                 <span className="text-base font-bold tracking-tight text-gray-900">
-                  SATGAS USK - SIKAT
+                  GEOTAGGING
                 </span>
                 <p className="text-[9px] uppercase tracking-[0.15em] text-gray-500">
-                  Sistem Informasi Kebencanaan Terpadu
+                  SATGAS USK
                 </p>
               </div>
             </Link>
@@ -56,24 +56,6 @@ export default function Navbar() {
                 className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Beranda
-              </Link>
-              <Link
-                href="#tentang"
-                className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Tentang
-              </Link>
-              <Link
-                href="#fitur"
-                className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Fitur
-              </Link>
-              <Link
-                href="#galeri"
-                className="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Galeri
               </Link>
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="ml-2">
                 <Link
@@ -134,27 +116,6 @@ export default function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Beranda
-                </Link>
-                <Link
-                  href="#tentang"
-                  className="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Tentang
-                </Link>
-                <Link
-                  href="#fitur"
-                  className="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Fitur
-                </Link>
-                <Link
-                  href="#galeri"
-                  className="block px-4 py-3 text-gray-700 font-medium hover:bg-gray-50 rounded-lg transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Galeri
                 </Link>
                 <Link
                   href="/dashboard"

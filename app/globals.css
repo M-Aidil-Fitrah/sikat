@@ -16,8 +16,14 @@
   --color-primary-dark: var(--primary-dark);
   --color-secondary: var(--secondary);
   --color-accent: var(--accent);
-  --font-sans: system-ui, sans-serif;
-  --font-display: system-ui, sans-serif;
+  --font-sans: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  --font-serif: var(--font-instrument-serif), serif;
+  --font-display: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+}
+
+.font-instrument-serif {
+  font-family: var(--font-instrument-serif), serif;
+  font-style: italic;
 }
 
 * {
@@ -27,7 +33,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, sans-serif;
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
 }
 
 /* Selection */
@@ -56,7 +62,7 @@ body {
 
 /* Leaflet Custom Styles */
 .leaflet-container {
-  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
 }
 
 .leaflet-popup-content-wrapper {

@@ -28,7 +28,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden bg-linear-to-b from-slate-50 to-white">
+    <section className="relative h-screen flex items-center overflow-hidden bg-linear-to-b from-slate-50 to-white">
       {/* Subtle Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_0)] bg-size-[32px_32px]" />
       
@@ -37,7 +37,7 @@ export default function HeroSection() {
       <div className="absolute bottom-20 left-10 w-96 h-96 bg-red-50/50 rounded-full blur-3xl" />
 
       {/* Content */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 lg:pt-32">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Text Content */}
           <motion.div
@@ -50,22 +50,18 @@ export default function HeroSection() {
             {/* Main Title */}
             <motion.h1
               variants={itemVariants}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight"
+              className="text-5xl sm:text-6xl lg:text-7xl text-red-600 leading-tight"
+              style={{ fontFamily: 'var(--font-instrument-serif)', fontStyle: 'italic' }}
             >
-              Sistem Informasi
-              <span className="block text-red-600 mt-2">
-                Kebencanaan Terpadu
-              </span>
+              Geotagging
             </motion.h1>
 
             {/* Subtitle */}
             <motion.p
               variants={itemVariants}
-              className="mt-6 text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              className="mt-6 text-base sm:text-lg text-gray-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed text-justify"
             >
-              Platform pelaporan dan monitoring bencana alam terintegrasi untuk 
-              wilayah Aceh. Laporkan kejadian, pantau perkembangan, dan 
-              koordinasikan respons bencana secara real-time.
+              Geotagging adalah aplikasi berbasis WebGIS yang digunakan untuk mengumpulkan, memetakan, dan memvisualisasikan laporan kondisi infrastruktur dan permukiman terdampak bencana secara berbasis lokasi. Setiap laporan dilengkapi dengan koordinat geografis, informasi jenis dan tingkat kerusakan, kebutuhan mendesak, serta dokumentasi foto lapangan, sehingga kondisi di lokasi dapat dipantau secara spasial dan real-time.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -80,22 +76,6 @@ export default function HeroSection() {
                 </svg>
               </Link>
             </motion.div>
-
-            {/* Stats */}
-            <motion.div variants={itemVariants} className="mt-12 grid grid-cols-3 gap-6 lg:gap-8">
-              <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">24/7</div>
-                <div className="text-sm text-gray-500 mt-1">Akses Informasi</div>
-              </div>
-              <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-gray-900">18</div>
-                <div className="text-sm text-gray-500 mt-1">Kabupaten/Kota Terdampak</div>
-              </div>
-              <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-red-600">Live</div>
-                <div className="text-sm text-gray-500 mt-1">Update Data</div>
-              </div>
-            </motion.div>
           </motion.div>
 
           {/* Right: Dashboard Image */}
@@ -107,7 +87,7 @@ export default function HeroSection() {
           >
             <img
               src="/foto/dashboard-laptop.png"
-              alt="Dashboard SIKAT"
+              alt="Dashboard Geotagging"
               className="w-full h-auto object-contain"
             />
           </motion.div>

@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Shield, AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
