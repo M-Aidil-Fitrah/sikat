@@ -16,10 +16,7 @@ import {
   Filter,
   ChevronRight,
   Download,
-  Menu,
-  RefreshCw,
-  Eye,
-  ChevronUp
+  RefreshCw
 } from 'lucide-react';
 
 interface Report {
@@ -68,48 +65,9 @@ export default function AdminDashboardView() {
   const [isUpdating, setIsUpdating] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showInvalidReports, setShowInvalidReports] = useState(false);
   const [invalidReports, setInvalidReports] = useState<InvalidReportData[]>([]);
   const [isLoadingInvalidReports, setIsLoadingInvalidReports] = useState(false);
-  const [selectedReportInvalidReports, setSelectedReportInvalidReports] = useState<Array<{
-    id: string;
-    reason: string;
-    reporterName: string | null;
-    kontak: string | null;
-    createdAt: string;
-  }>>([]);
-  const [isLoadingSelectedInvalidReports, setIsLoadingSelectedInvalidReports] = useState(false);
-  const [showInvalidReportsDetail, setShowInvalidReportsDetail] = useState(false);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, []);
-
-  // Load sidebar state
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebar-collapsed");
-    if (saved !== null) {
-      setSidebarCollapsed(saved === "true");
-    }
-    
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem("sidebar-collapsed");
-      if (saved !== null) {
-        setSidebarCollapsed(saved === "true");
-      }
-    };
-    
-    window.addEventListener("storage", handleStorageChange);
-    const interval = setInterval(handleStorageChange, 100);
-    
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
 
   // Load reports on mount
   useEffect(() => {
@@ -161,12 +119,6 @@ export default function AdminDashboardView() {
       setFilteredReports(reports.filter(r => r.status === statusFilter));
     }
   }, [statusFilter, reports]);
-
-  useEffect(() => {
-    if (showDetailModal && selectedReport && selectedReport.invalidReportsCount && selectedReport.invalidReportsCount > 0) {
-      loadInvalidReportsForReport(selectedReport.id);
-    }
-  }, [showDetailModal, selectedReport]);
 
   const loadReports = async () => {
     try {
@@ -250,6 +202,13 @@ export default function AdminDashboardView() {
       const currentReport = reports.find(r => r.id === reportId);
       if (!currentReport) return;
 
+      // Optimistic update - update UI immediately
+      setReports(prevReports => 
+        prevReports.map(r => 
+          r.id === reportId ? { ...r, statusTangani: newStatusTangani } : r
+        )
+      );
+
       const response = await fetch(`/api/admin/reports/${reportId}/status`, {
         method: 'PATCH',
         headers: {
@@ -264,14 +223,17 @@ export default function AdminDashboardView() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        setReports(prevReports => 
+          prevReports.map(r => 
+            r.id === reportId ? { ...r, statusTangani: currentReport.statusTangani } : r
+          )
+        );
         throw new Error(data.error || 'Gagal mengupdate status tangani');
       }
 
       // Show success message
       alert(`Status penanganan berhasil diubah menjadi ${newStatusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani'}!`);
-      
-      // Reload data
-      await loadReports();
     } catch (error) {
       console.error('Error updating statusTangani:', error);
       alert(`Gagal mengupdate status penanganan: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -309,31 +271,6 @@ export default function AdminDashboardView() {
 
   const toggleInvalidReports = () => {
     setShowInvalidReports(!showInvalidReports);
-  };
-
-  const loadInvalidReportsForReport = async (reportId: number) => {
-    setIsLoadingSelectedInvalidReports(true);
-    setShowInvalidReportsDetail(false); // Close detail saat mulai load baru
-    try {
-      const response = await fetch(`/api/invalid-reports/${reportId}`);
-      
-      if (!response.ok) {
-        throw new Error('Gagal memuat laporan tidak valid');
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.data && Array.isArray(data.data)) {
-        setSelectedReportInvalidReports(data.data);
-      } else {
-        setSelectedReportInvalidReports([]);
-      }
-    } catch (error) {
-      console.error('Error loading invalid reports for report:', error);
-      setSelectedReportInvalidReports([]);
-    } finally {
-      setIsLoadingSelectedInvalidReports(false);
-    }
   };
 
   // Download reports as Excel
@@ -473,7 +410,7 @@ export default function AdminDashboardView() {
 
   return (
     <>
-      <main className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}>
+      <div className="flex-1 flex flex-col overflow-y-auto">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex justify-between items-start sm:items-center gap-4">
@@ -502,15 +439,6 @@ export default function AdminDashboardView() {
                 <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Download Excel</span>
                 <span className="sm:hidden">Excel</span>
-              </button>
-              
-              {/* Hamburger Menu - Mobile Only */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Toggle menu"
-              >
-                <Menu className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -790,7 +718,7 @@ export default function AdminDashboardView() {
                               onClick={(e) => e.stopPropagation()}
                               className={`text-xs px-2 py-1 rounded-lg font-medium border cursor-pointer ${
                                 report.statusTangani === 'SUDAH_DITANGANI' 
-                                  ? 'bg-blue-100 text-blue-700 border-blue-300' 
+                                  ? 'bg-green-100 text-green-700 border-green-300' 
                                   : 'bg-gray-100 text-gray-700 border-gray-300'
                               }`}
                             >
@@ -809,7 +737,7 @@ export default function AdminDashboardView() {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Detail Modal */}
       {showDetailModal && selectedReport && (

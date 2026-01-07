@@ -152,6 +152,7 @@ export default function InvalidReportsView() {
 
   useEffect(() => {
     loadInvalidReports();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Format date/time

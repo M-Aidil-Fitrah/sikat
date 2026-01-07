@@ -1,62 +1,42 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
-import { Menu } from "lucide-react";
+import { useState, Suspense } from "react";
 import Sidebar from "@/app/components/Sidebar";
 import UserDashboardView from "@/app/components/user/UserDashboardView";
+import { Menu } from "lucide-react";
 
 // Inner component that uses client-side hooks
 function DashboardContent() {
-  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
-
-  // Check authentication
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/auth/me');
-        if (!response.ok) {
-          router.push('/');
-          return;
-        }
-        setIsAuthChecked(true);
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        router.push('/');
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, []);
-
-  if (!isAuthChecked) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Memuat...</p>
-        </div>
-      </div>
-    );
-  }
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
-      <Sidebar 
+      <Sidebar
+        isAdmin={false}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        onCollapsedChange={(collapsed) => setSidebarCollapsed(collapsed)}
       />
 
-      {/* Main Dashboard View */}
-      <UserDashboardView />
+      {/* Main Content */}
+      <main className={`flex-1 flex flex-col overflow-y-auto transition-all duration-300 ${
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
+      }`}>
+        {/* Mobile Hamburger Menu */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
+        <UserDashboardView />
+      </main>
     </div>
   );
 }

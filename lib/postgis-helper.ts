@@ -132,51 +132,7 @@ export async function getReportsWithCoordinates(whereClause?: {
   status?: string;
   id?: number;
 }) {
-  let query = `
-    SELECT 
-      id,
-      ST_X(location::geometry) as lng,
-      ST_Y(location::geometry) as lat,
-      "namaPelapor",
-      kontak,
-      "desaKecamatan",
-      "namaObjek",
-      "jenisKerusakan",
-      "tingkatKerusakan",
-      "fotoLokasi",
-      "keteranganKerusakan",
-      status,
-      "submittedAt",
-      "reviewedAt",
-      "reviewedById",
-      "reviewNote",
-      "autoApproved",
-      "createdAt",
-      "updatedAt"
-    FROM reports
-  `;
-
-  const conditions: string[] = [];
-  const params: (string | number)[] = [];
-
-  if (whereClause?.status) {
-    conditions.push(`status = $${params.length + 1}`);
-    params.push(whereClause.status);
-  }
-
-  if (whereClause?.id) {
-    conditions.push(`id = $${params.length + 1}`);
-    params.push(whereClause.id);
-  }
-
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-
-  query += ' ORDER BY "submittedAt" DESC';
-
   // Gunakan queryRaw dengan tagged template untuk type safety
-  // Note: Gunakan Prisma.sql untuk avoid type casting issues
   const { Prisma } = await import('@prisma/client');
   
   if (whereClause?.status && whereClause?.id) {
@@ -195,6 +151,7 @@ export async function getReportsWithCoordinates(whereClause?: {
           "fotoLokasi",
           "keteranganKerusakan",
           status::text as status,
+          "statusTangani"::text as "statusTangani",
           "submittedAt",
           "reviewedAt",
           "reviewedById",
@@ -223,6 +180,7 @@ export async function getReportsWithCoordinates(whereClause?: {
           "fotoLokasi",
           "keteranganKerusakan",
           status::text as status,
+          "statusTangani"::text as "statusTangani",
           "submittedAt",
           "reviewedAt",
           "reviewedById",
@@ -251,6 +209,7 @@ export async function getReportsWithCoordinates(whereClause?: {
           "fotoLokasi",
           "keteranganKerusakan",
           status::text as status,
+          "statusTangani"::text as "statusTangani",
           "submittedAt",
           "reviewedAt",
           "reviewedById",
@@ -279,6 +238,7 @@ export async function getReportsWithCoordinates(whereClause?: {
           "fotoLokasi",
           "keteranganKerusakan",
           status::text as status,
+          "statusTangani"::text as "statusTangani",
           "submittedAt",
           "reviewedAt",
           "reviewedById",
@@ -314,6 +274,7 @@ export async function getReportByIdWithCoordinates(id: number) {
         "fotoLokasi",
         "keteranganKerusakan",
         status::text as status,
+        "statusTangani"::text as "statusTangani",
         "submittedAt",
         "reviewedAt",
         "reviewedById",
@@ -373,6 +334,7 @@ export async function findReportsWithinRadius(
         "fotoLokasi",
         "keteranganKerusakan",
         status::text as status,
+        "statusTangani"::text as "statusTangani",
         "submittedAt",
         "reviewedAt",
         "reviewedById",
@@ -411,6 +373,7 @@ export interface ReportWithCoordinates {
   fotoLokasi: string[];
   keteranganKerusakan: string;
   status: string;
+  statusTangani?: string | null;
   submittedAt: Date;
   reviewedAt: Date | null;
   reviewedById: number | null;

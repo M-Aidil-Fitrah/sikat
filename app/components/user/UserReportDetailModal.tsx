@@ -6,7 +6,6 @@ import {
   MapPin, 
   Clock, 
   AlertTriangle,
-  CheckCircle2,
   AlertCircle
 } from 'lucide-react';
 import type { DisasterData } from '@/lib/types';
@@ -33,17 +32,6 @@ export default function UserReportDetailModal({
   loadingInvalidReports,
   onPhotoClick
 }: UserReportDetailModalProps) {
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const day = date.getUTCDate();
-    const month = months[date.getUTCMonth()];
-    const year = date.getUTCFullYear();
-    const hours = date.getUTCHours().toString().padStart(2, '0');
-    const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-    return `${day} ${month} ${year}, ${hours}:${minutes} WIB`;
-  };
-
   const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
     const date = new Date(dateString);
     const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];

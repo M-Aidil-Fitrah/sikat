@@ -7,6 +7,7 @@ import type { DisasterData } from "@/lib/types";
 import { getReports } from "@/lib/api";
 import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import UserReportDetailModal from "./UserReportDetailModal";
+import InvalidReportFormModal from "./InvalidReportFormModal";
 
 // Format detailed timestamp - langsung dari database (sudah WIB)
 const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
@@ -51,8 +52,6 @@ export default function UserDashboardView() {
   const [disasters, setDisasters] = useState<DisasterData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isSubmittingInvalidReport, setIsSubmittingInvalidReport] = useState(false);
   const [reportInvalidReports, setReportInvalidReports] = useState<Array<{
     id: string;
     reason: string;
@@ -60,35 +59,7 @@ export default function UserDashboardView() {
     createdAt: string;
   }>>([]);
   const [loadingInvalidReports, setLoadingInvalidReports] = useState(false);
-  const [invalidReportForm, setInvalidReportForm] = useState({
-    reason: '',
-    reporterName: '',
-    kontak: ''
-  });
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
-
-  // Handle sidebar collapsed state from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebar-collapsed");
-    if (saved !== null) {
-      setSidebarCollapsed(saved === "true");
-    }
-    
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem("sidebar-collapsed");
-      if (saved !== null) {
-        setSidebarCollapsed(saved === "true");
-      }
-    };
-    
-    window.addEventListener("storage", handleStorageChange);
-    const interval = setInterval(handleStorageChange, 100);
-    
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
 
   // Load disasters from API
   const loadDisasters = async () => {
@@ -163,47 +134,6 @@ export default function UserDashboardView() {
     }
   };
 
-  const handleInvalidReportSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedDisaster || !invalidReportForm.reason.trim()) {
-      alert('Alasan wajib diisi');
-      return;
-    }
-
-    setIsSubmittingInvalidReport(true);
-
-    try {
-      const response = await fetch('/api/invalid-reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reportId: selectedDisaster.id,
-          reason: invalidReportForm.reason,
-          reporterName: invalidReportForm.reporterName || undefined,
-          kontak: invalidReportForm.kontak || undefined
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('Laporan tidak valid berhasil dikirim. Terima kasih atas partisipasinya!');
-        setShowInvalidReportForm(false);
-        setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
-        // Reload data untuk update counter
-        loadDisasters();
-      } else {
-        alert(data.error || 'Gagal mengirim laporan tidak valid');
-      }
-    } catch (error) {
-      console.error('Error submitting invalid report:', error);
-      alert('Gagal mengirim laporan tidak valid');
-    } finally {
-      setIsSubmittingInvalidReport(false);
-    }
-  };
-
   const stats = {
     totalReports: disasters.length,
     banjir: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('banjir')).length,
@@ -212,7 +142,7 @@ export default function UserDashboardView() {
   };
 
   return (
-    <main className={`flex-1 overflow-y-auto min-h-screen transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}>
+    <div className="flex-1 flex flex-col overflow-y-auto">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-20">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -488,7 +418,7 @@ export default function UserDashboardView() {
                         <div className="font-medium text-gray-900">Status Penanganan</div>
                         <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium mt-1 ${
                           selectedDisaster?.statusTangani === 'SUDAH_DITANGANI' 
-                            ? 'bg-blue-100 text-blue-700' 
+                            ? 'bg-green-100 text-green-700' 
                             : 'bg-gray-100 text-gray-700'
                         }`}>
                           {selectedDisaster?.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani'}
@@ -576,120 +506,15 @@ export default function UserDashboardView() {
 
       {/* Invalid Report Form Modal */}
       {showInvalidReportForm && selectedDisaster && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => {
-          setShowInvalidReportForm(false);
-          setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
-        }}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="relative bg-linear-to-r from-amber-500 to-orange-500 p-6 text-white">
-              <button
-                onClick={() => {
-                  setShowInvalidReportForm(false);
-                  setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
-                }}
-                className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-8 h-8" />
-                <div>
-                  <h2 className="text-2xl font-bold">Laporkan Tidak Valid</h2>
-                  <p className="text-amber-100 mt-1">Laporan: {selectedDisaster.namaObjek}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <form onSubmit={handleInvalidReportSubmit} className="p-6 overflow-y-auto flex-1">
-              <p className="text-gray-600 mb-6">
-                Jika Anda merasa laporan ini tidak valid (misalnya lokasi terlalu jauh, informasi tidak akurat, atau indikasi penipuan), 
-                silakan sampaikan keberatan Anda di bawah ini. Data Anda akan dikirim ke admin untuk ditinjau lebih lanjut.
-              </p>
-
-              {/* Alasan */}
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Alasan / Komentar <span className="text-red-600">*</span>
-                </label>
-                <textarea
-                  value={invalidReportForm.reason}
-                  onChange={(e) => setInvalidReportForm({ ...invalidReportForm, reason: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
-                  rows={5}
-                  placeholder="Jelaskan mengapa Anda merasa laporan ini tidak valid..."
-                  required
-                  disabled={isSubmittingInvalidReport}
-                />
-              </div>
-
-              {/* Nama Pelapor (Opsional) */}
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nama Anda (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={invalidReportForm.reporterName}
-                  onChange={(e) => setInvalidReportForm({ ...invalidReportForm, reporterName: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                  placeholder="Nama Anda (bisa dikosongkan jika ingin anonim)"
-                  disabled={isSubmittingInvalidReport}
-                />
-              </div>
-
-              {/* Kontak (Opsional) */}
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Kontak / No. HP (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={invalidReportForm.kontak}
-                  onChange={(e) => setInvalidReportForm({ ...invalidReportForm, kontak: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                  placeholder="No. HP Anda (hanya admin yang dapat melihat)"
-                  disabled={isSubmittingInvalidReport}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  * Kontak hanya akan dilihat oleh admin dan tidak ditampilkan di dashboard publik
-                </p>
-              </div>
-
-              {/* Submit Button */}
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowInvalidReportForm(false);
-                    setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
-                  }}
-                  className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors"
-                  disabled={isSubmittingInvalidReport}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  disabled={isSubmittingInvalidReport}
-                >
-                  {isSubmittingInvalidReport ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Mengirim...
-                    </>
-                  ) : (
-                    'Kirim Laporan'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <InvalidReportFormModal
+          reportId={selectedDisaster.id}
+          reportName={selectedDisaster.namaObjek}
+          onClose={() => setShowInvalidReportForm(false)}
+          onSuccess={() => {
+            // Reload disasters to get updated data
+            loadDisasters();
+          }}
+        />
       )}
 
       {/* Photo Viewer Modal */}
@@ -715,6 +540,6 @@ export default function UserDashboardView() {
           />
         </div>
       )}
-    </main>
+    </div>
   );
 }

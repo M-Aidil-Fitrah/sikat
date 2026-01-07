@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/app/components/Sidebar';
 import AdminDashboardView from '@/app/components/superuser/AdminDashboardView';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu } from 'lucide-react';
 
 // Force dynamic rendering for authentication
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -61,16 +62,32 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
       <Sidebar 
         isAdmin={true}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        onCollapsedChange={(collapsed) => setSidebarCollapsed(collapsed)}
       />
 
       {/* Main Content - Dashboard View */}
-      <AdminDashboardView />
+      <div className={`flex-1 flex flex-col overflow-y-auto transition-all duration-300 ${
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
+      }`}>
+        {/* Mobile Header with Hamburger */}
+        <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+            aria-label="Toggle menu"
+          >
+            <Menu className="h-6 w-6 text-gray-700" />
+          </button>
+        </div>
+        
+        <AdminDashboardView />
+      </div>
     </div>
   );
 }

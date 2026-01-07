@@ -18,13 +18,15 @@ interface SidebarProps {
   isAdmin?: boolean;
   isMobileMenuOpen?: boolean;
   onMobileMenuToggle?: () => void;
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 export default function Sidebar({ 
   defaultCollapsed = false, 
   isAdmin = false,
   isMobileMenuOpen: externalMobileMenuOpen,
-  onMobileMenuToggle
+  onMobileMenuToggle,
+  onCollapsedChange
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -61,6 +63,9 @@ export default function Sidebar({
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem("sidebar-collapsed", String(newState));
+    if (onCollapsedChange) {
+      onCollapsedChange(newState);
+    }
   };
 
   const handleLogout = async () => {

@@ -1,62 +1,41 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { Menu } from "lucide-react";
 import Sidebar from "@/app/components/Sidebar";
 import LaporanView from "@/app/components/user/LaporanView";
-import { Menu } from "lucide-react";
 
 function LaporanContent() {
-  const router = useRouter();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, []);
-
-  // Load sidebar state
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebar-collapsed");
-    if (saved !== null) {
-      setSidebarCollapsed(saved === "true");
-    }
-    
-    // Listen for sidebar changes
-    const handleStorageChange = () => {
-      const saved = localStorage.getItem("sidebar-collapsed");
-      if (saved !== null) {
-        setSidebarCollapsed(saved === "true");
-      }
-    };
-    
-    window.addEventListener("storage", handleStorageChange);
-    
-    // Also check periodically (for same-tab changes)
-    const interval = setInterval(handleStorageChange, 100);
-    
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(interval);
-    };
-  }, []);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50/80 flex">
-      <Sidebar 
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar
+        isAdmin={false}
         isMobileMenuOpen={isMobileMenuOpen}
         onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        onCollapsedChange={(collapsed) => setSidebarCollapsed(collapsed)}
       />
 
       {/* Main Content */}
-      <main 
-        className={`flex-1 min-h-screen transition-all duration-300 lg:${
-          sidebarCollapsed ? "ml-20" : "ml-72"
-        }`}
-      >
+      <div className={`flex-1 flex flex-col overflow-y-auto transition-all duration-300 ${
+        sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
+      }`}>
+        {/* Mobile Hamburger Menu */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-bold text-gray-900">Daftar Laporan</h1>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            <Menu className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
         <LaporanView />
-      </main>
+      </div>
     </div>
   );
 }

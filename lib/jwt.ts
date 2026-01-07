@@ -27,7 +27,7 @@ export async function signToken(payload: JWTPayload): Promise<string> {
   return await new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('24h') // Token expire dalam 24 jam (tapi inactivity timeout tetap 1 jam)
+    .setExpirationTime('12h') // Token expire dalam 12 jam
     .sign(JWT_SECRET);
 }
 
