@@ -70,8 +70,9 @@ function SuperUserLoginContent() {
               className="h-24 w-auto sm:h-28"
             />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Admin SIKAT</h1>
-          <p className="text-sm sm:text-base text-gray-600">Sistem Informasi Kerusakan Bencana Alam Terpadu</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">Geotagging</h1>
+          <p className="text-sm font-semibold text-red-600 tracking-wide uppercase mb-2">SATGAS USK</p>
+          <p className="text-sm sm:text-base text-gray-600">Sistem Informasi Geotagging Bencana Alam</p>
         </div>
 
         {/* Login Card */}

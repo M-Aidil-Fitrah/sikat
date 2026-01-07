@@ -56,6 +56,15 @@ export async function getReports(): Promise<DisasterData[]> {
 }
 
 /**
+ * GET /api/reports - Fetch ALL reports (including PENDING & REJECTED)
+ * Used for dashboard to show reports immediately after submission
+ */
+export async function getAllReports(): Promise<DisasterData[]> {
+  const response = await fetchAPI<DisasterData[]>('/api/reports?includeAll=true');
+  return response.reports || [];
+}
+
+/**
  * GET /api/reports/:id - Fetch single report
  */
 export async function getReportById(id: number): Promise<Report> {

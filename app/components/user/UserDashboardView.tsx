@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import type { DisasterData } from "@/lib/types";
-import { getReports } from "@/lib/api";
+import { getAllReports } from "@/lib/api";
 import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
 import UserReportDetailModal from "./UserReportDetailModal";
 import InvalidReportFormModal from "./InvalidReportFormModal";
@@ -66,7 +66,7 @@ export default function UserDashboardView() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await getReports();
+      const data = await getAllReports();
       setDisasters(data);
     } catch (err) {
       console.error('Error loading disasters:', err);
@@ -136,9 +136,9 @@ export default function UserDashboardView() {
 
   const stats = {
     totalReports: disasters.length,
-    banjir: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('banjir')).length,
-    longsor: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('longsor')).length,
-    approved: disasters.filter(d => d.status === 'APPROVED').length
+    pending: disasters.filter(d => d.status === 'PENDING').length,
+    approved: disasters.filter(d => d.status === 'APPROVED').length,
+    rejected: disasters.filter(d => d.status === 'REJECTED').length
   };
 
   return (
@@ -215,38 +215,38 @@ export default function UserDashboardView() {
 
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
             <div className="flex items-center justify-between mb-2 sm:mb-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Berat').length}</div>
-            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Kerusakan Berat</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{stats.pending}</div>
+            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Belum Diverifikasi</div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-            <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Sedang').length}</div>
-            <div className="text-gray-500 font-medium">Kerusakan Sedang</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Ringan').length}</div>
-            <div className="text-gray-500 font-medium">Kerusakan Ringan</div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{stats.approved}</div>
+            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Terverifikasi</div>
+          </div>
+
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{stats.rejected}</div>
+            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Ditolak</div>
           </div>
         </div>
 

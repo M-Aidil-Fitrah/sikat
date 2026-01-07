@@ -149,12 +149,11 @@ export default function Sidebar({
           />
           {!isCollapsed && (
             <div className="overflow-hidden">
-              <span className="text-sm font-bold text-gray-900 block leading-tight">
-                {isAdmin ? (
-                  <>Admin SIKAT<br/>Dashboard Admin</>
-                ) : (
-                  <>Sistem Informasi<br/>Kebencanaan Terpadu</>
-                )}
+              <span className="text-lg font-bold text-gray-900 block leading-tight tracking-tight">
+                Geotagging
+              </span>
+              <span className="text-xs font-semibold text-red-600 tracking-wide uppercase">
+                SATGAS USK
               </span>
             </div>
           )}
