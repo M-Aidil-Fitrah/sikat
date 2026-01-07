@@ -386,13 +386,13 @@ export default function MapComponent({
       {isFullscreen && (
         <div 
           className="fixed inset-0 bg-white flex flex-col"
-          style={{ zIndex: 999 }}
+          style={{ zIndex: 9999 }}
         >
           {/* Exit Button */}
           <button
             onClick={() => setIsFullscreen(false)}
             className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
-            style={{ zIndex: 1000 }}
+            style={{ zIndex: 10000 }}
           >
             <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -400,7 +400,7 @@ export default function MapComponent({
           </button>
 
           {/* Legenda */}
-          <div className="absolute bottom-6 left-6 bg-white rounded-lg shadow-lg border border-gray-200 p-3" style={{ zIndex: 1000 }}>
+          <div className="absolute bottom-6 left-6 bg-white rounded-lg shadow-lg border border-gray-200 p-3" style={{ zIndex: 10000 }}>
             <h4 className="text-xs font-bold text-gray-900 mb-2">Tingkat Kerusakan</h4>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">

@@ -157,11 +157,29 @@ export default function UserReportDetailModal({
               </div>
               <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
                 disaster.statusTangani === 'SUDAH_DITANGANI' 
-                  ? 'bg-blue-100 text-blue-700' 
+                  ? 'bg-green-100 text-green-700' 
                   : 'bg-gray-100 text-gray-700'
               }`}>
                 {disaster.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani'}
               </span>
+            </div>
+          </div>
+
+          {/* Keterangan */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Keterangan Kerusakan</h3>
+            <p className="text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">
+              {disaster.keteranganKerusakan}
+            </p>
+          </div>
+
+          {/* Coordinates */}
+          <div className="bg-gray-100 rounded-xl p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs text-gray-500 uppercase tracking-wider">Koordinat</span>
+                <p className="font-mono text-sm mt-1 text-gray-800">{disaster.lat.toFixed(6)}, {disaster.lng.toFixed(6)}</p>
+              </div>
             </div>
           </div>
 
@@ -205,24 +223,6 @@ export default function UserReportDetailModal({
               )}
             </div>
           )}
-
-          {/* Keterangan */}
-          <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Keterangan Kerusakan</h3>
-            <p className="text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">
-              {disaster.keteranganKerusakan}
-            </p>
-          </div>
-
-          {/* Coordinates */}
-          <div className="bg-gray-900 rounded-xl p-4 text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs text-gray-400 uppercase tracking-wider">Koordinat</span>
-                <p className="font-mono text-sm mt-1">{disaster.lat.toFixed(6)}, {disaster.lng.toFixed(6)}</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Modal Footer */}

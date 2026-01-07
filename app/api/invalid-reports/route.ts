@@ -31,13 +31,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create invalid report
+    // Create WIB date (UTC+7) untuk konsistensi dengan Report table
+    const wibDate = new Date(Date.now() + (7 * 60 * 60 * 1000));
+
+    // Create invalid report dengan WIB timezone
     const invalidReport = await prisma.invalidReport.create({
       data: {
         reportId: body.reportId,
         reason: body.reason.trim(),
         reporterName: body.reporterName?.trim() || null,
         kontak: body.kontak?.trim() || null,
+        createdAt: wibDate,
       }
     });
 

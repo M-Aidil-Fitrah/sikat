@@ -26,7 +26,10 @@ function DashboardContent() {
       }`}>
         {/* Mobile Hamburger Menu */}
         <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <img src="/logo-satgas-usk.png" alt="Logo Satgas USK" className="w-8 h-8 object-contain" />
+            <span className="text-lg font-bold text-gray-900">Geotagging</span>
+          </div>
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"

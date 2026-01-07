@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       ...report,
       timestamp: getRelativeTime(report.submittedAt),
       reviewedBy: report.reviewedById ? usersMap.get(report.reviewedById) || null : null,
-      invalidReportsCount: invalidReportCountsMap.get(report.id) || 0,
+      invalidReportsCount: invalidReportCountsMap.get(report.id) || undefined,
     }));
 
     return NextResponse.json({

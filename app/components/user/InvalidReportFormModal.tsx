@@ -125,18 +125,25 @@ export default function InvalidReportFormModal({
           {/* Contact Field (Optional) */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Kontak <span className="text-gray-400 text-xs">(Opsional)</span>
+              Kontak (WhatsApp) <span className="text-gray-400 text-xs">(Opsional)</span>
             </label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                type="text"
+                type="tel"
                 value={formData.kontak}
-                onChange={(e) => setFormData({ ...formData, kontak: e.target.value })}
+                onChange={(e) => {
+                  // Only allow numbers
+                  const value = e.target.value.replace(/\D/g, '');
+                  setFormData({ ...formData, kontak: value });
+                }}
                 className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
-                placeholder="No. HP / Email"
+                placeholder="081234567890"
+                maxLength={15}
+                pattern="[0-9]*"
               />
             </div>
+            <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa +62)</p>
           </div>
 
           {/* Actions */}

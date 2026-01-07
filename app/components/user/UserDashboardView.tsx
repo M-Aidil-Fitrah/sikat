@@ -26,7 +26,7 @@ const formatDetailedTime = (timestamp: string, dateString: Date | string): strin
 };
 
 // Dynamic import to avoid SSR issues with Leaflet
-const MapComponent = dynamic(() => import("../MapComponent"), {
+const MapComponent = dynamic(() => import("./MapComponent"), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center rounded-2xl">
@@ -38,7 +38,7 @@ const MapComponent = dynamic(() => import("../MapComponent"), {
   )
 });
 
-const DisasterForm = dynamic(() => import("../DisasterForm"), {
+const DisasterForm = dynamic(() => import("./DisasterForm"), {
   ssr: false
 });
 

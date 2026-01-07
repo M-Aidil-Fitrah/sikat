@@ -708,23 +708,30 @@ export default function AdminDashboardView() {
                             }`}>
                               {report.tingkatKerusakan}
                             </span>
-                            {/* Status Tangani Dropdown */}
-                            <select
-                              value={report.statusTangani}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                updateStatusTangani(report.id, e.target.value as 'SUDAH_DITANGANI' | 'BELUM_DITANGANI');
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className={`text-xs px-2 py-1 rounded-lg font-medium border cursor-pointer ${
-                                report.statusTangani === 'SUDAH_DITANGANI' 
-                                  ? 'bg-green-100 text-green-700 border-green-300' 
-                                  : 'bg-gray-100 text-gray-700 border-gray-300'
-                              }`}
-                            >
-                              <option value="BELUM_DITANGANI">Belum Ditangani</option>
-                              <option value="SUDAH_DITANGANI">Sudah Ditangani</option>
-                            </select>
+                            {/* Status Tangani Dropdown - Modern Style */}
+                            <div className="relative">
+                              <select
+                                value={report.statusTangani}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  updateStatusTangani(report.id, e.target.value as 'SUDAH_DITANGANI' | 'BELUM_DITANGANI');
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className={`appearance-none text-xs pl-3 pr-8 py-1.5 rounded-lg font-semibold border-2 cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                                  report.statusTangani === 'SUDAH_DITANGANI' 
+                                    ? 'bg-green-500 text-white border-green-500 hover:bg-green-600 focus:ring-green-400' 
+                                    : 'bg-red-500 text-white border-red-500 hover:bg-red-600 focus:ring-red-400'
+                                }`}
+                              >
+                                <option value="BELUM_DITANGANI" className="bg-white text-gray-900">Belum Ditangani</option>
+                                <option value="SUDAH_DITANGANI" className="bg-white text-gray-900">Sudah Ditangani</option>
+                              </select>
+                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                                <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
