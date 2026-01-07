@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/jwt';
 import type { InvalidReportFormInput, ApiResponse, InvalidReportWithReport } from '@/lib/types';
 
 /**
@@ -63,6 +64,25 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication untuk GET all (admin only)
+    const token = request.cookies.get('admin-token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' } as ApiResponse,
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token);
+
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' } as ApiResponse,
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const reportId = searchParams.get('reportId');
 
@@ -71,39 +91,90 @@ export async function GET(request: NextRequest) {
       const invalidReports = await prisma.invalidReport.findMany({
         where: { reportId: parseInt(reportId) },
         include: {
-          report: true
+          report: {
+            include: {
+              reviewedBy: {
+                select: {
+                  id: true,
+                  name: true,
+                  username: true
+                }
+              }
+            }
+          }
         },
         orderBy: { createdAt: 'desc' }
       });
 
+      // Add coordinates from PostGIS geometry
+      const transformedReports = await Promise.all(invalidReports.map(async (ir) => {
+        // Get coordinates from PostGIS using raw query
+        const coordsResult = await prisma.$queryRaw<Array<{ lat: number; lng: number }>>`
+          SELECT ST_Y(location::geometry) as lat, ST_X(location::geometry) as lng
+          FROM reports
+          WHERE id = ${ir.reportId}
+        `;
+        const coords = coordsResult[0];
+        
+        return {
+          ...ir,
+          report: {
+            ...ir.report,
+            lat: coords?.lat,
+            lng: coords?.lng
+          }
+        };
+      }));
+
       return NextResponse.json({
         success: true,
-        data: invalidReports,
-        count: invalidReports.length
+        data: transformedReports,
+        count: transformedReports.length
       } as ApiResponse<InvalidReportWithReport[]>);
     }
 
     // Get all invalid reports with report details
     const invalidReports = await prisma.invalidReport.findMany({
       include: {
-        report: true
+        report: {
+          include: {
+            reviewedBy: {
+              select: {
+                id: true,
+                name: true,
+                username: true
+              }
+            }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    // Count per report (untuk future use atau analytics)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const reportCounts = await prisma.invalidReport.groupBy({
-      by: ['reportId'],
-      _count: {
-        id: true
-      }
-    });
+    // Add coordinates from PostGIS geometry
+    const transformedReports = await Promise.all(invalidReports.map(async (ir) => {
+      // Get coordinates from PostGIS using raw query
+      const coordsResult = await prisma.$queryRaw<Array<{ lat: number; lng: number }>>`
+        SELECT ST_Y(location::geometry) as lat, ST_X(location::geometry) as lng
+        FROM reports
+        WHERE id = ${ir.reportId}
+      `;
+      const coords = coordsResult[0];
+      
+      return {
+        ...ir,
+        report: {
+          ...ir.report,
+          lat: coords?.lat,
+          lng: coords?.lng
+        }
+      };
+    }));
 
     return NextResponse.json({
       success: true,
-      data: invalidReports,
-      count: invalidReports.length
+      data: transformedReports,
+      count: transformedReports.length
     } as ApiResponse<InvalidReportWithReport[]>);
 
   } catch (error) {

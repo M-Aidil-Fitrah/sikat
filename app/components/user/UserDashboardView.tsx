@@ -1,0 +1,720 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import type { DisasterData } from "@/lib/types";
+import { getReports } from "@/lib/api";
+import { Clock, AlertTriangle, FileText, User, CheckCircle, TrendingUp, AlertCircle, RefreshCw, Plus } from "lucide-react";
+import UserReportDetailModal from "./UserReportDetailModal";
+
+// Format detailed timestamp - langsung dari database (sudah WIB)
+const formatDetailedTime = (timestamp: string, dateString: Date | string): string => {
+  // Parse tanpa konversi timezone - langsung gunakan string dari database
+  const date = new Date(dateString);
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  
+  // Gunakan UTC methods untuk membaca waktu yang sudah dalam WIB dari database
+  const day = date.getUTCDate();
+  const month = months[date.getUTCMonth()];
+  const year = date.getUTCFullYear();
+  const hours = date.getUTCHours().toString().padStart(2, '0');
+  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+  
+  return `${timestamp} (${day} ${month} ${year}, ${hours}:${minutes} WIB)`;
+};
+
+// Dynamic import to avoid SSR issues with Leaflet
+const MapComponent = dynamic(() => import("../MapComponent"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center rounded-2xl">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-slate-600 font-medium">Memuat peta...</p>
+      </div>
+    </div>
+  )
+});
+
+const DisasterForm = dynamic(() => import("../DisasterForm"), {
+  ssr: false
+});
+
+export default function UserDashboardView() {
+  const searchParams = useSearchParams();
+  const [selectedDisaster, setSelectedDisaster] = useState<DisasterData | null>(null);
+  const [showInputForm, setShowInputForm] = useState(false);
+  const [showDetailOverlay, setShowDetailOverlay] = useState(false);
+  const [showInvalidReportForm, setShowInvalidReportForm] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
+  const [disasters, setDisasters] = useState<DisasterData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isSubmittingInvalidReport, setIsSubmittingInvalidReport] = useState(false);
+  const [reportInvalidReports, setReportInvalidReports] = useState<Array<{
+    id: string;
+    reason: string;
+    reporterName: string | null;
+    createdAt: string;
+  }>>([]);
+  const [loadingInvalidReports, setLoadingInvalidReports] = useState(false);
+  const [invalidReportForm, setInvalidReportForm] = useState({
+    reason: '',
+    reporterName: '',
+    kontak: ''
+  });
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Handle sidebar collapsed state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar-collapsed");
+    if (saved !== null) {
+      setSidebarCollapsed(saved === "true");
+    }
+    
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("sidebar-collapsed");
+      if (saved !== null) {
+        setSidebarCollapsed(saved === "true");
+      }
+    };
+    
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 100);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Load disasters from API
+  const loadDisasters = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await getReports();
+      setDisasters(data);
+    } catch (err) {
+      console.error('Error loading disasters:', err);
+      setError('Gagal memuat data laporan');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load disasters on mount
+  useEffect(() => {
+    loadDisasters();
+  }, []);
+
+  // Handle URL parameters for map navigation
+  useEffect(() => {
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+    const id = searchParams.get('id');
+    
+    if (lat && lng) {
+      setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+      
+      // Find and select the disaster if id is provided
+      if (id && disasters.length > 0) {
+        const disaster = disasters.find(d => d.id === parseInt(id));
+        if (disaster) {
+          setSelectedDisaster(disaster);
+        }
+      }
+    }
+  }, [searchParams, disasters]);
+
+  // Load invalid reports when detail modal is opened
+  useEffect(() => {
+    if (showDetailOverlay && selectedDisaster) {
+      loadInvalidReportsForReport(selectedDisaster.id);
+    } else {
+      setReportInvalidReports([]);
+    }
+  }, [showDetailOverlay, selectedDisaster]);
+
+  const handleFormSubmit = () => {
+    // Reload disasters after successful submission
+    loadDisasters();
+    setShowInputForm(false);
+  };
+
+  const loadInvalidReportsForReport = async (reportId: number) => {
+    setLoadingInvalidReports(true);
+    try {
+      const response = await fetch(`/api/invalid-reports/${reportId}`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setReportInvalidReports(data.data);
+      } else {
+        setReportInvalidReports([]);
+      }
+    } catch (error) {
+      console.error('Error loading invalid reports:', error);
+      setReportInvalidReports([]);
+    } finally {
+      setLoadingInvalidReports(false);
+    }
+  };
+
+  const handleInvalidReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedDisaster || !invalidReportForm.reason.trim()) {
+      alert('Alasan wajib diisi');
+      return;
+    }
+
+    setIsSubmittingInvalidReport(true);
+
+    try {
+      const response = await fetch('/api/invalid-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportId: selectedDisaster.id,
+          reason: invalidReportForm.reason,
+          reporterName: invalidReportForm.reporterName || undefined,
+          kontak: invalidReportForm.kontak || undefined
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Laporan tidak valid berhasil dikirim. Terima kasih atas partisipasinya!');
+        setShowInvalidReportForm(false);
+        setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
+        // Reload data untuk update counter
+        loadDisasters();
+      } else {
+        alert(data.error || 'Gagal mengirim laporan tidak valid');
+      }
+    } catch (error) {
+      console.error('Error submitting invalid report:', error);
+      alert('Gagal mengirim laporan tidak valid');
+    } finally {
+      setIsSubmittingInvalidReport(false);
+    }
+  };
+
+  const stats = {
+    totalReports: disasters.length,
+    banjir: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('banjir')).length,
+    longsor: disasters.filter(d => d.jenisKerusakan.toLowerCase().includes('longsor')).length,
+    approved: disasters.filter(d => d.status === 'APPROVED').length
+  };
+
+  return (
+    <main className={`flex-1 overflow-y-auto min-h-screen transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"}`}>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 sticky top-0 z-20">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard Kebencanaan</h1>
+              <p className="text-gray-500 mt-1 text-sm">Pemantauan Bencana Banjir Sumatra </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <button 
+              onClick={loadDisasters}
+              className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-colors font-medium shadow-sm text-sm flex-1 sm:flex-initial justify-center"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'Memuat...' : 'Refresh'}</span>
+            </button>
+            <button 
+              onClick={() => setShowInputForm(!showInputForm)}
+              className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all shadow-lg shadow-red-600/30 text-sm flex-1 sm:flex-initial justify-center">
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Tambah Laporan</span>
+              <span className="sm:hidden">Tambah</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {isLoading && disasters.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600 font-medium">Memuat data laporan...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-center gap-4">
+            <AlertCircle className="w-8 h-8 text-red-600 shrink-0" />
+            <div>
+              <h3 className="font-semibold text-red-900">Gagal Memuat Data</h3>
+              <p className="text-red-700 text-sm mt-1">{error}</p>
+              <button 
+                onClick={loadDisasters}
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="p-4 sm:p-6 lg:p-8">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+          <div className="bg-linear-to-br from-red-500 to-red-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-xl shadow-red-500/30">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 sm:px-3 py-1 rounded-full backdrop-blur-sm">Live</span>
+            </div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">{stats.totalReports}</div>
+            <div className="text-red-100 font-medium text-xs sm:text-sm lg:text-base">Total Laporan</div>
+          </div>
+
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Berat').length}</div>
+            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Kerusakan Berat</div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Sedang').length}</div>
+            <div className="text-gray-500 font-medium">Kerusakan Sedang</div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-gray-900 mb-2">{disasters.filter(d => d.tingkatKerusakan === 'Ringan').length}</div>
+            <div className="text-gray-500 font-medium">Kerusakan Ringan</div>
+          </div>
+        </div>
+
+        {/* Map and Detail Section */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 items-start">
+          {/* Map - Show second on mobile, first on desktop */}
+          <div className="xl:col-span-2 xl:order-1 bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden h-fit relative z-10">
+            <div className="p-4 sm:p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-gray-900">Peta Sebaran Laporan Bencana Banjir Sumatra</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-1">Monitoring Real-time</p>
+              </div>
+            </div>
+            <div className="h-64 sm:h-96 lg:h-150 relative overflow-hidden">
+              <MapComponent 
+                key="dashboard-map"
+                selectedDisaster={selectedDisaster} 
+                onDisasterSelect={setSelectedDisaster}
+                onOpenDetailOverlay={(disaster) => {
+                  setSelectedDisaster(disaster);
+                  setShowDetailOverlay(true);
+                }}
+                disasters={disasters}
+                isDetailOverlayOpen={showDetailOverlay}
+                mapCenter={mapCenter}
+              />
+            </div>
+          </div>
+
+          {/* Detail Sidebar - Show first on mobile, second on desktop */}
+          <div className="space-y-4 sm:space-y-6 xl:order-2">
+            {/* Selected Disaster Detail */}
+            {selectedDisaster ? (
+              <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-linear-to-r from-red-600 to-orange-600 p-4 sm:p-6 text-white">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`w-3 h-3 rounded-full ${
+                      selectedDisaster?.tingkatKerusakan === 'Berat' ? 'bg-white' :
+                      selectedDisaster?.tingkatKerusakan === 'Sedang' ? 'bg-amber-200' :
+                      'bg-green-200'
+                    }`}></span>
+                    <h3 className="font-bold text-lg">{selectedDisaster?.namaObjek}</h3>
+                  </div>
+                  <p className="text-red-100 text-sm">Tingkat Kerusakan: {selectedDisaster?.tingkatKerusakan}</p>
+                  {selectedDisaster.invalidReportsCount && selectedDisaster.invalidReportsCount > 3 && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-500 text-white rounded-lg text-xs font-semibold">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Perlu Diverifikasi ({selectedDisaster.invalidReportsCount} laporan tidak valid)
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                  {/* Foto Lokasi */}
+                  {selectedDisaster.fotoLokasi && selectedDisaster.fotoLokasi.length > 0 && (
+                    <div>
+                      <div className="text-xs text-gray-500 font-semibold mb-2">FOTO LOKASI</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedDisaster.fotoLokasi.slice(0, 4).map((foto, index) => (
+                          <img 
+                            key={index}
+                            src={foto} 
+                            alt={`Foto ${index + 1}`}
+                            className="w-full h-20 sm:h-24 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setSelectedPhotoUrl(foto)}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/200x150?text=Foto+Tidak+Tersedia';
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {selectedDisaster.fotoLokasi.length > 4 && (
+                        <p className="text-xs text-gray-500 mt-2">+{selectedDisaster.fotoLokasi.length - 4} foto lainnya</p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="text-xs text-gray-500 font-semibold mb-1">KOORDINAT</div>
+                    <div className="font-mono text-sm text-gray-900">{selectedDisaster?.lat.toFixed(6)}, {selectedDisaster?.lng.toFixed(6)}</div>
+                  </div>
+                  
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <div className="text-xs text-gray-500 font-semibold mb-1">LOKASI</div>
+                    <div className="text-sm text-gray-900">{selectedDisaster?.desaKecamatan}</div>
+                  </div>
+
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Jenis Kerusakan</div>
+                        <div className="text-gray-600">{selectedDisaster?.jenisKerusakan}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-3">
+                      <TrendingUp className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Tingkat Kerusakan</div>
+                        <div className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
+                          selectedDisaster?.tingkatKerusakan === 'Berat' ? 'bg-red-100 text-red-700' :
+                          selectedDisaster?.tingkatKerusakan === 'Sedang' ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>{selectedDisaster?.tingkatKerusakan}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Waktu</div>
+                        <div className="text-gray-600 text-sm">
+                          {formatDetailedTime(selectedDisaster.timestamp, selectedDisaster.submittedAt)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <FileText className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Keterangan Kerusakan & Kebutuhan</div>
+                        <div className="text-gray-600">{selectedDisaster?.keteranganKerusakan}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <User className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Pelapor</div>
+                        <div className="text-gray-600">{selectedDisaster?.namaPelapor}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Status</div>
+                        {selectedDisaster?.status === 'APPROVED' ? (
+                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Diverifikasi
+                          </span>
+                        ) : selectedDisaster?.status === 'REJECTED' ? (
+                          <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Ditolak
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Menunggu Verifikasi
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">Status Penanganan</div>
+                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium mt-1 ${
+                          selectedDisaster?.statusTangani === 'SUDAH_DITANGANI' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {selectedDisaster?.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100">
+                    <button 
+                      onClick={() => setShowDetailOverlay(true)}
+                      className="w-full px-4 py-2.5 bg-linear-to-r from-red-600 to-orange-600 text-white rounded-xl font-semibold hover:from-red-700 hover:to-orange-700 transition-all"
+                    >
+                      Lihat Detail Lengkap
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">Pilih Marker</h3>
+                <p className="text-sm text-gray-500">Klik marker pada peta untuk melihat detail informasi bencana</p>
+              </div>
+            )}
+
+            {/* Recent Reports */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="font-bold text-gray-900">Laporan Terkini</h3>
+              </div>
+              <div className="divide-y divide-gray-100 max-h-75 overflow-y-auto">
+                {disasters.slice(0, 5).map((disaster) => (
+                  <button
+                    key={disaster.id}
+                    onClick={() => setSelectedDisaster(disaster)}
+                    className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${
+                        disaster.tingkatKerusakan === 'Berat' ? 'bg-red-500' :
+                        disaster.tingkatKerusakan === 'Sedang' ? 'bg-amber-500' :
+                        'bg-green-500'
+                      }`}></span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 text-sm">{disaster.namaObjek}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{disaster.desaKecamatan}</div>
+                        <div className="text-xs text-gray-400 mt-1">{disaster.timestamp}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Disaster Form Modal */}
+      {showInputForm && (
+        <DisasterForm
+          onClose={() => setShowInputForm(false)}
+          onSubmit={handleFormSubmit}
+        />
+      )}
+
+      {/* Detail Overlay Modal */}
+      {showDetailOverlay && selectedDisaster && (
+        <UserReportDetailModal
+          disaster={selectedDisaster}
+          onClose={() => setShowDetailOverlay(false)}
+          onOpenInvalidReportForm={() => {
+            setShowInvalidReportForm(true);
+            setShowDetailOverlay(false);
+          }}
+          reportInvalidReports={reportInvalidReports}
+          loadingInvalidReports={loadingInvalidReports}
+          onPhotoClick={setSelectedPhotoUrl}
+        />
+      )}
+
+      {/* Invalid Report Form Modal */}
+      {showInvalidReportForm && selectedDisaster && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => {
+          setShowInvalidReportForm(false);
+          setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
+        }}>
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="relative bg-linear-to-r from-amber-500 to-orange-500 p-6 text-white">
+              <button
+                onClick={() => {
+                  setShowInvalidReportForm(false);
+                  setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
+                }}
+                className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-8 h-8" />
+                <div>
+                  <h2 className="text-2xl font-bold">Laporkan Tidak Valid</h2>
+                  <p className="text-amber-100 mt-1">Laporan: {selectedDisaster.namaObjek}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <form onSubmit={handleInvalidReportSubmit} className="p-6 overflow-y-auto flex-1">
+              <p className="text-gray-600 mb-6">
+                Jika Anda merasa laporan ini tidak valid (misalnya lokasi terlalu jauh, informasi tidak akurat, atau indikasi penipuan), 
+                silakan sampaikan keberatan Anda di bawah ini. Data Anda akan dikirim ke admin untuk ditinjau lebih lanjut.
+              </p>
+
+              {/* Alasan */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Alasan / Komentar <span className="text-red-600">*</span>
+                </label>
+                <textarea
+                  value={invalidReportForm.reason}
+                  onChange={(e) => setInvalidReportForm({ ...invalidReportForm, reason: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
+                  rows={5}
+                  placeholder="Jelaskan mengapa Anda merasa laporan ini tidak valid..."
+                  required
+                  disabled={isSubmittingInvalidReport}
+                />
+              </div>
+
+              {/* Nama Pelapor (Opsional) */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nama Anda (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={invalidReportForm.reporterName}
+                  onChange={(e) => setInvalidReportForm({ ...invalidReportForm, reporterName: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="Nama Anda (bisa dikosongkan jika ingin anonim)"
+                  disabled={isSubmittingInvalidReport}
+                />
+              </div>
+
+              {/* Kontak (Opsional) */}
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Kontak / No. HP (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={invalidReportForm.kontak}
+                  onChange={(e) => setInvalidReportForm({ ...invalidReportForm, kontak: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  placeholder="No. HP Anda (hanya admin yang dapat melihat)"
+                  disabled={isSubmittingInvalidReport}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  * Kontak hanya akan dilihat oleh admin dan tidak ditampilkan di dashboard publik
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowInvalidReportForm(false);
+                    setInvalidReportForm({ reason: '', reporterName: '', kontak: '' });
+                  }}
+                  className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors"
+                  disabled={isSubmittingInvalidReport}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  disabled={isSubmittingInvalidReport}
+                >
+                  {isSubmittingInvalidReport ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Mengirim...
+                    </>
+                  ) : (
+                    'Kirim Laporan'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Viewer Modal */}
+      {selectedPhotoUrl && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4"
+          style={{ zIndex: 10000 }}
+          onClick={() => setSelectedPhotoUrl(null)}
+        >
+          <button 
+            className="absolute top-4 right-4 text-white bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full w-12 h-12 flex items-center justify-center transition-colors"
+            onClick={() => setSelectedPhotoUrl(null)}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img 
+            src={selectedPhotoUrl} 
+            alt="Full view" 
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </main>
+  );
+}

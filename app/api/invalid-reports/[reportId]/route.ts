@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/jwt';
 import type { ApiResponse } from '@/lib/types';
 
 /**
@@ -11,6 +12,25 @@ export async function GET(
   { params }: { params: Promise<{ reportId: string }> }
 ) {
   try {
+    // Verify authentication (admin only)
+    const token = request.cookies.get('admin-token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' } as ApiResponse,
+        { status: 401 }
+      );
+    }
+
+    const payload = await verifyToken(token);
+
+    if (!payload) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' } as ApiResponse,
+        { status: 401 }
+      );
+    }
+
     const { reportId } = await params;
     const reportIdNum = parseInt(reportId);
 
