@@ -423,6 +423,11 @@ export default function InvalidReportsView() {
                                 <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${getSeverityBadge(group.report.tingkatKerusakan)}`}>
                                   {group.report.tingkatKerusakan}
                                 </span>
+                                {/* Mobile: Show location below */}
+                                <div className="flex items-center gap-1 text-xs text-gray-500 mt-1 md:hidden">
+                                  <MapPin className="w-3 h-3 shrink-0" />
+                                  <span className="truncate max-w-36">{group.report.desaKecamatan}</span>
+                                </div>
                               </div>
                             </td>
                             <td className="py-3 px-4 hidden md:table-cell">
@@ -550,8 +555,8 @@ export default function InvalidReportsView() {
                   <p className="text-amber-100 text-sm">Laporan #{selectedInvalidReport.report.id}</p>
                 </div>
                 <button
-                  onClick={() => setSelectedInvalidReport(null)}
-                  className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setSelectedInvalidReport(null); }}
+                  className="w-8 h-8 bg-white/20 hover:bg-white/30 active:bg-white/40 rounded-full flex items-center justify-center text-white transition-colors z-10 touch-manipulation"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -564,7 +569,7 @@ export default function InvalidReportsView() {
               <div className="mb-5">
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Laporan Terkait</h4>
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="font-medium text-gray-900">{selectedInvalidReport.report.namaObjek}</p>
+                  <p className="font-medium text-gray-900 wrap-break-word">{selectedInvalidReport.report.namaObjek}</p>
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" />
@@ -586,7 +591,7 @@ export default function InvalidReportsView() {
                       <User className="w-3.5 h-3.5" />
                       <span className="text-xs font-medium uppercase">Nama</span>
                     </div>
-                    <p className="text-gray-900 text-sm font-medium">
+                    <p className="text-gray-900 text-sm font-medium wrap-break-word">
                       {selectedInvalidReport.invalidReport.reporterName || 'Anonim'}
                     </p>
                   </div>
@@ -595,7 +600,7 @@ export default function InvalidReportsView() {
                       <Phone className="w-3.5 h-3.5" />
                       <span className="text-xs font-medium uppercase">Kontak</span>
                     </div>
-                    <p className="text-gray-900 text-sm font-medium">
+                    <p className="text-gray-900 text-sm font-medium wrap-break-word">
                       {selectedInvalidReport.invalidReport.kontak || '-'}
                     </p>
                   </div>
@@ -616,10 +621,10 @@ export default function InvalidReportsView() {
               {/* Reason */}
               <div>
                 <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Alasan</h4>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <div className="flex items-start gap-2">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 min-w-0">
+                  <div className="flex items-start gap-2 min-w-0">
                     <FileText className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                    <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap wrap-break-word min-w-0 overflow-hidden">
                       {selectedInvalidReport.invalidReport.reason}
                     </p>
                   </div>

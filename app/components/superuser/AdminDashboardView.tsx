@@ -576,7 +576,7 @@ export default function AdminDashboardView() {
                 </div>
               </div>
               <div className={`text-2xl sm:text-3xl font-bold mb-1 ${statusFilter === 'APPROVED' ? 'text-white' : 'text-green-600'}`}>{stats.approved}</div>
-              <div className={`font-medium text-xs sm:text-sm ${statusFilter === 'APPROVED' ? 'text-green-100' : 'text-gray-500'}`}>Terverifikasi</div>
+              <div className={`font-medium text-xs sm:text-sm ${statusFilter === 'APPROVED' ? 'text-green-100' : 'text-gray-500'}`}>Telah Diverifikasi</div>
             </button>
             
             <button 
@@ -685,13 +685,19 @@ export default function AdminDashboardView() {
                             </span>
                           </td>
                           <td className="py-3 px-4">
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <p className="font-medium text-gray-900 text-sm truncate max-w-32" title={report.namaObjek}>
                                 {report.namaObjek.length > 20 ? `${report.namaObjek.slice(0, 20)}...` : report.namaObjek}
                               </p>
-                              <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                                <User className="w-3 h-3" /> {report.namaPelapor}
+                              <p className="text-xs text-gray-500 truncate flex items-center gap-1" title={report.namaPelapor}>
+                                <User className="w-3 h-3" /> 
+                                {report.namaPelapor.length > 25 ? `${report.namaPelapor.slice(0, 25)}...` : report.namaPelapor}
                               </p>
+                              {/* Mobile: Show lokasi */}
+                              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1 md:hidden">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="truncate max-w-36" title={report.desaKecamatan}>{report.desaKecamatan}</span>
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 hidden md:table-cell">
@@ -719,10 +725,25 @@ export default function AdminDashboardView() {
                             )}
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${severityStyle.badge}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${severityStyle.dot}`}></span>
-                              {report.tingkatKerusakan}
-                            </span>
+                            <div className="flex flex-col gap-1.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium w-fit ${severityStyle.badge}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${severityStyle.dot}`}></span>
+                                {report.tingkatKerusakan}
+                              </span>
+                              {/* Mobile: Show status penanganan next to tingkat kerusakan */}
+                              <select
+                                value={report.statusTangani}
+                                onChange={(e) => updateStatusTangani(report.id, e.target.value as 'SUDAH_DITANGANI' | 'BELUM_DITANGANI')}
+                                className={`lg:hidden text-xs px-2 py-1 rounded-lg font-medium border-0 cursor-pointer w-fit ${
+                                  report.statusTangani === 'SUDAH_DITANGANI' 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}
+                              >
+                                <option value="BELUM_DITANGANI">Belum</option>
+                                <option value="SUDAH_DITANGANI">Sudah</option>
+                              </select>
+                            </div>
                           </td>
                           <td className="py-3 px-4 hidden lg:table-cell">
                             <select

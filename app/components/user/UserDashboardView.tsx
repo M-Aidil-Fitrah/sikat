@@ -81,7 +81,7 @@ export default function UserDashboardView() {
     loadDisasters();
   }, []);
 
-  // Handle URL parameters for map navigation
+  // Handle URL parameters for map navigation - ONLY ONCE on initial load
   useEffect(() => {
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
@@ -96,6 +96,16 @@ export default function UserDashboardView() {
         if (disaster) {
           setSelectedDisaster(disaster);
         }
+      }
+
+      // Clear URL params after setting map center to prevent re-triggering
+      // This allows users to click other markers without being forced back
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('lat');
+        url.searchParams.delete('lng');
+        url.searchParams.delete('id');
+        window.history.replaceState({}, '', url.toString());
       }
     }
   }, [searchParams, disasters]);
@@ -234,7 +244,7 @@ export default function UserDashboardView() {
               </div>
             </div>
             <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">{stats.approved}</div>
-            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Terverifikasi</div>
+            <div className="text-gray-500 font-medium text-xs sm:text-sm lg:text-base">Telah Diverifikasi</div>
           </div>
 
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
@@ -384,13 +394,13 @@ export default function UserDashboardView() {
                     <div className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900">Status</div>
+                        <div className="font-medium text-gray-900">Status Diverifikasi</div>
                         {selectedDisaster?.status === 'APPROVED' ? (
                           <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium mt-1">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
-                            Diverifikasi
+                            Telah Diverifikasi
                           </span>
                         ) : selectedDisaster?.status === 'REJECTED' ? (
                           <span className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium mt-1">

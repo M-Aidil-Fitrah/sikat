@@ -211,6 +211,11 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     const modeToUse = preferredFacingMode || facingMode;
 
     try {
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported in this browser. Please use a modern browser (Chrome, Firefox, Safari).');
+      }
+
       // Try with facingMode first (mobile devices)
       let stream: MediaStream;
       try {
@@ -365,7 +370,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
     Array.from(files).forEach(file => {
       if (!allowedTypes.includes(file.type)) {
-        alert(`File ${file.name} tidak didukung. Hanya JPG, PNG, dan HEIC yang diperbolehkan.`);
+        alert(`File ${file.name} tidak didukung. Hanya JPG, JPEG, PNG, dan HEIC yang diperbolehkan.`);
         return;
       }
 
@@ -526,7 +531,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
               </div>
 
               <p className="text-xs text-gray-500 text-center">
-                Format: JPG, PNG, HEIC • Ukuran maks: 2MB per foto
+                Format: JPG, PNG, JPEG, HEIC • Ukuran maks: 2MB per foto
               </p>
             </div>
           )}
@@ -648,7 +653,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
               >
                 <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                 <p className="font-semibold text-gray-900 mb-1">Upload Foto</p>
-                <p className="text-sm text-gray-600">Min 1 - Maks 3 foto (JPG, PNG, HEIC)</p>
+                <p className="text-sm text-gray-600">Min 1 - Maks 3 foto (JPG, JPEG, PNG, HEIC)</p>
                 <p className="text-xs text-gray-500 mt-1">Maksimal 2MB per foto</p>
               </button>
 
@@ -806,7 +811,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                     maxLength={15}
                     pattern="[0-9]*"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa +62)</p>
+                  <p className="text-xs text-gray-500 mt-1">Hanya ditampilkan untuk keperluan admin (bukan untuk ditampilkan umum)</p>
                 </div>
 
                 <div>

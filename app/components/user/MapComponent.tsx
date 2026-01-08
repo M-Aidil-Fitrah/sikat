@@ -253,15 +253,6 @@ export default function MapComponent({
     };
   }, [isMounted, isFullscreen, isDetailOverlayOpen, disasters, selectedDisaster, createCustomIcon, createPopupContent, onDisasterSelect, cleanupMap, mapCenter]);
 
-  // Handle external mapCenter changes (fly to location)
-  useEffect(() => {
-    if (mapCenter && mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo([mapCenter.lat, mapCenter.lng], 15, {
-        duration: 1.5
-      });
-    }
-  }, [mapCenter]);
-
   // Initialize fullscreen map
   useEffect(() => {
     if (!isMounted || !isFullscreen) return;

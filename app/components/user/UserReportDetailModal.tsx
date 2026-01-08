@@ -70,8 +70,8 @@ export default function UserReportDetailModal({
           )}
           
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 active:bg-white/40 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors z-10 touch-manipulation"
           >
             <X className="w-5 h-5" />
           </button>
@@ -92,7 +92,7 @@ export default function UserReportDetailModal({
                 </span>
               )}
             </div>
-            <h2 className="text-2xl font-bold drop-shadow-lg">{disaster.namaObjek}</h2>
+            <h2 className="text-2xl font-bold drop-shadow-lg wrap-break-word">{disaster.namaObjek}</h2>
           </div>
         </div>
 
@@ -123,7 +123,7 @@ export default function UserReportDetailModal({
                 <MapPin className="w-4 h-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Lokasi</span>
               </div>
-              <p className="text-gray-900 font-medium">{disaster.desaKecamatan}</p>
+              <p className="text-gray-900 font-medium wrap-break-word">{disaster.desaKecamatan}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 text-gray-500 mb-1">
@@ -139,14 +139,14 @@ export default function UserReportDetailModal({
                 <AlertTriangle className="w-4 h-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Jenis Kerusakan</span>
               </div>
-              <p className="text-gray-900 font-medium">{disaster.jenisKerusakan}</p>
+              <p className="text-gray-900 font-medium wrap-break-word">{disaster.jenisKerusakan}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 text-gray-500 mb-1">
                 <User className="w-4 h-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Pelapor</span>
               </div>
-              <p className="text-gray-900 font-medium">{disaster.namaPelapor}</p>
+              <p className="text-gray-900 font-medium wrap-break-word">{disaster.namaPelapor}</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 text-gray-500 mb-1">
@@ -168,7 +168,7 @@ export default function UserReportDetailModal({
           {/* Keterangan */}
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Keterangan Kerusakan</h3>
-            <p className="text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4">
+            <p className="text-gray-700 leading-relaxed bg-gray-50 rounded-xl p-4 wrap-break-word whitespace-normal">
               {disaster.keteranganKerusakan}
             </p>
           </div>

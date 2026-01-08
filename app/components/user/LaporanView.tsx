@@ -411,13 +411,24 @@ export default function LaporanView() {
                                   <Building2 className="w-5 h-5 text-gray-400" />
                                 </div>
                               )}
-                              <div className="min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <p className="font-medium text-gray-900 text-sm truncate max-w-32" title={report.namaObjek}>
                                   {report.namaObjek.length > 20 ? `${report.namaObjek.slice(0, 20)}...` : report.namaObjek}
                                 </p>
                                 <p className="text-xs text-gray-500 truncate max-w-32" title={report.jenisKerusakan}>
                                   {report.jenisKerusakan.length > 25 ? `${report.jenisKerusakan.slice(0, 25)}...` : report.jenisKerusakan}
                                 </p>
+                                {/* Mobile: Show lokasi and pelapor */}
+                                <div className="flex flex-col gap-0.5 mt-1 md:hidden">
+                                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <MapPin className="w-3 h-3 shrink-0" />
+                                    <span className="truncate max-w-40" title={report.desaKecamatan}>{report.desaKecamatan}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs text-gray-500 lg:hidden">
+                                    <User className="w-3 h-3 shrink-0" />
+                                    <span className="truncate max-w-32" title={report.namaPelapor}>{report.namaPelapor}</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -439,7 +450,7 @@ export default function LaporanView() {
                               report.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
                               'bg-red-100 text-red-700'
                             }`}>
-                              {report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Terverifikasi' : 'Ditolak'}
+                              {report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Telah Diverifikasi' : 'Ditolak'}
                             </span>
                           </td>
                           <td className="py-3 px-4 hidden lg:table-cell">
