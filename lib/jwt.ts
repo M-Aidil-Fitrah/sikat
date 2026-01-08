@@ -38,10 +38,18 @@ export async function signToken(payload: JWTPayload): Promise<string> {
  */
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
+    // jwtVerify akan automatically check expiration time
     const { payload } = await jwtVerify(token, JWT_SECRET);
     
     // Extract dan validate payload
     if (!payload || typeof payload !== 'object') {
+      console.error('JWT payload invalid or missing');
+      return null;
+    }
+    
+    // Double check expiration (jose already checks, but we log for debugging)
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      console.error('JWT token expired at:', new Date((payload.exp as number) * 1000).toISOString());
       return null;
     }
     
@@ -54,7 +62,16 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
       exp: payload.exp,
     };
   } catch (error) {
-    console.error('JWT verification failed:', error);
+    // Log detailed error for debugging
+    if (error instanceof Error) {
+      console.error('JWT verification failed:', error.message);
+      // Check if it's an expiration error
+      if (error.message.includes('expired')) {
+        console.error('Token has expired - user needs to login again');
+      }
+    } else {
+      console.error('JWT verification failed:', error);
+    }
     return null;
   }
 }

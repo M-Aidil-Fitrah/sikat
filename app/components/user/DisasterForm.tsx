@@ -712,7 +712,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                     setFormData(prev => ({ ...prev, kontak: value }));
                   }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="082323232332"
+                  placeholder="081234567890"
                   maxLength={15}
                   pattern="[0-9]*"
                 />

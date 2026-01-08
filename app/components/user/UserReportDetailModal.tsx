@@ -227,17 +227,17 @@ export default function UserReportDetailModal({
 
         {/* Modal Footer */}
         <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-end gap-3">
             <button
               onClick={onOpenInvalidReportForm}
-              className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
               <AlertCircle className="w-4 h-4" />
               Laporkan Tidak Valid
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-medium transition-colors"
+              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Tutup
             </button>

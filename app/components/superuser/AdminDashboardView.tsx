@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminReportDetailModal from './AdminReportDetailModal';
 import Pagination from '@/app/components/ui/Pagination';
@@ -9,7 +9,6 @@ import {
   Clock, 
   MapPin, 
   User, 
-  AlertTriangle,
   FileText,
   Loader2,
   Download,
@@ -80,10 +79,39 @@ export default function AdminDashboardView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
+  // Load reports function (defined before useEffect)
+  const loadReports = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/admin/reports');
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/superuser');
+          return;
+        }
+        throw new Error('Gagal memuat laporan');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.reports && Array.isArray(data.reports)) {
+        setReports(data.reports);
+      } else {
+        setReports([]);
+      }
+    } catch (error) {
+      console.error('Error loading reports:', error);
+      alert('Gagal memuat laporan. Silakan coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
+
   // Load reports on mount
   useEffect(() => {
     loadReports();
-  }, []);
+  }, [loadReports]);
 
   // Auto logout setelah 1 jam tidak ada aktivitas
   useEffect(() => {
@@ -176,34 +204,6 @@ export default function AdminDashboardView() {
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, searchQuery, itemsPerPage]);
-
-  const loadReports = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/admin/reports');
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/superuser');
-          return;
-        }
-        throw new Error('Gagal memuat laporan');
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.reports && Array.isArray(data.reports)) {
-        setReports(data.reports);
-      } else {
-        setReports([]);
-      }
-    } catch (error) {
-      console.error('Error loading reports:', error);
-      alert('Gagal memuat laporan. Silakan coba lagi.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {

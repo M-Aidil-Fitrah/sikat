@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { DisasterData } from '@/lib/types';
 import type { Map, Marker, Circle, DivIcon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -380,51 +381,57 @@ export default function MapComponent({
     );
   }
 
+  // Fullscreen map portal content
+  const fullscreenMapContent = isFullscreen && isMounted ? (
+    <div 
+      className="fixed inset-0 bg-white flex flex-col"
+      style={{ zIndex: 999999 }}
+    >
+      {/* Fullscreen Map Container */}
+      <div 
+        ref={fullscreenMapContainerRef} 
+        className="flex-1 w-full"
+        style={{ minHeight: '100vh' }}
+      />
+      
+      {/* Exit Button - z-index harus lebih tinggi dari leaflet controls */}
+      <button
+        onClick={() => setIsFullscreen(false)}
+        className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
+        style={{ zIndex: 10000 }}
+      >
+        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      {/* Legenda - z-index harus lebih tinggi dari leaflet controls */}
+      <div className="absolute bottom-6 left-6 bg-white rounded-lg shadow-lg border border-gray-200 p-3" style={{ zIndex: 10000 }}>
+        <h4 className="text-xs font-bold text-gray-900 mb-2">Tingkat Kerusakan</h4>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-red-600"></div>
+            <span className="text-xs text-gray-700">Berat</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-amber-500"></div>
+            <span className="text-xs text-gray-700">Sedang</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-green-600"></div>
+            <span className="text-xs text-gray-700">Ringan</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="w-full h-full relative">
-      {/* Fullscreen Overlay */}
-      {isFullscreen && (
-        <div 
-          className="fixed inset-0 bg-white flex flex-col"
-          style={{ zIndex: 100000 }}
-        >
-          {/* Exit Button */}
-          <button
-            onClick={() => setIsFullscreen(false)}
-            className="absolute top-4 right-4 bg-white hover:bg-gray-50 p-2.5 rounded-lg shadow-lg border border-gray-200 transition-colors"
-            style={{ zIndex: 100001 }}
-          >
-            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {/* Legenda */}
-          <div className="absolute bottom-6 left-6 bg-white rounded-lg shadow-lg border border-gray-200 p-3" style={{ zIndex: 100001 }}>
-            <h4 className="text-xs font-bold text-gray-900 mb-2">Tingkat Kerusakan</h4>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-red-600"></div>
-                <span className="text-xs text-gray-700">Berat</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-amber-500"></div>
-                <span className="text-xs text-gray-700">Sedang</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded-full bg-green-600"></div>
-                <span className="text-xs text-gray-700">Ringan</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Fullscreen Map Container */}
-          <div 
-            ref={fullscreenMapContainerRef} 
-            className="flex-1 w-full"
-            style={{ minHeight: '100vh' }}
-          />
-        </div>
+      {/* Render fullscreen map via portal to document.body */}
+      {isFullscreen && isMounted && typeof document !== 'undefined' && createPortal(
+        fullscreenMapContent,
+        document.body
       )}
 
       {/* Normal Map View */}

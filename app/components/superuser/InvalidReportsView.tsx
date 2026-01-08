@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Pagination from '@/app/components/ui/Pagination';
 import { 
   AlertTriangle,
@@ -103,7 +103,7 @@ export default function InvalidReportsView() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Load invalid reports
-  const loadInvalidReports = async () => {
+  const loadInvalidReports = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await fetch('/api/invalid-reports');
@@ -128,7 +128,7 @@ export default function InvalidReportsView() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const groupInvalidReportsByReportId = (reports: InvalidReportData[]): GroupedInvalidReports[] => {
     const grouped = new Map<number, GroupedInvalidReports>();
@@ -258,7 +258,7 @@ export default function InvalidReportsView() {
 
   useEffect(() => {
     loadInvalidReports();
-  }, []);
+  }, [loadInvalidReports]);;
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) return <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />;
