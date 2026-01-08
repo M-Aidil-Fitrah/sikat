@@ -648,7 +648,7 @@ export default function AdminDashboardView() {
                           Nama Objek <SortIcon field="namaObjek" />
                         </button>
                       </th>
-                      <th className="text-left py-3 px-4 hidden md:table-cell">
+                      <th className="text-left py-3 px-4">
                         <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Lokasi</span>
                       </th>
                       <th className="text-left py-3 px-4">
@@ -661,7 +661,7 @@ export default function AdminDashboardView() {
                           Tingkat <SortIcon field="tingkatKerusakan" />
                         </button>
                       </th>
-                      <th className="text-left py-3 px-4 hidden lg:table-cell">
+                      <th className="text-left py-3 px-4">
                         <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Penanganan</span>
                       </th>
                       <th className="text-left py-3 px-4">
@@ -693,14 +693,9 @@ export default function AdminDashboardView() {
                                 <User className="w-3 h-3" /> 
                                 {report.namaPelapor.length > 25 ? `${report.namaPelapor.slice(0, 25)}...` : report.namaPelapor}
                               </p>
-                              {/* Mobile: Show lokasi */}
-                              <div className="flex items-center gap-1 text-xs text-gray-500 mt-1 md:hidden">
-                                <MapPin className="w-3 h-3 shrink-0" />
-                                <span className="truncate max-w-36" title={report.desaKecamatan}>{report.desaKecamatan}</span>
-                              </div>
                             </div>
                           </td>
-                          <td className="py-3 px-4 hidden md:table-cell">
+                          <td className="py-3 px-4">
                             <div className="flex items-center gap-1.5 text-sm text-gray-600">
                               <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                               <span className="truncate max-w-30">{report.desaKecamatan}</span>
@@ -725,27 +720,12 @@ export default function AdminDashboardView() {
                             )}
                           </td>
                           <td className="py-3 px-4">
-                            <div className="flex flex-col gap-1.5">
-                              <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium w-fit ${severityStyle.badge}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${severityStyle.dot}`}></span>
-                                {report.tingkatKerusakan}
-                              </span>
-                              {/* Mobile: Show status penanganan next to tingkat kerusakan */}
-                              <select
-                                value={report.statusTangani}
-                                onChange={(e) => updateStatusTangani(report.id, e.target.value as 'SUDAH_DITANGANI' | 'BELUM_DITANGANI')}
-                                className={`lg:hidden text-xs px-2 py-1 rounded-lg font-medium border-0 cursor-pointer w-fit ${
-                                  report.statusTangani === 'SUDAH_DITANGANI' 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : 'bg-gray-100 text-gray-700'
-                                }`}
-                              >
-                                <option value="BELUM_DITANGANI">Belum</option>
-                                <option value="SUDAH_DITANGANI">Sudah</option>
-                              </select>
-                            </div>
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium w-fit ${severityStyle.badge}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${severityStyle.dot}`}></span>
+                              {report.tingkatKerusakan}
+                            </span>
                           </td>
-                          <td className="py-3 px-4 hidden lg:table-cell">
+                          <td className="py-3 px-4">
                             <select
                               value={report.statusTangani}
                               onChange={(e) => updateStatusTangani(report.id, e.target.value as 'SUDAH_DITANGANI' | 'BELUM_DITANGANI')}
