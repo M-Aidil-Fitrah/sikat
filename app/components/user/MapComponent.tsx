@@ -13,6 +13,8 @@ interface MapComponentProps {
   disasters?: DisasterData[];
   isDetailOverlayOpen?: boolean;
   mapCenter?: { lat: number; lng: number } | null;
+  shouldOpenMarker?: boolean;
+  onMarkerOpened?: () => void;
 }
 
 export default function MapComponent({ 
@@ -21,7 +23,9 @@ export default function MapComponent({
   onOpenDetailOverlay, 
   disasters = [], 
   isDetailOverlayOpen = false,
-  mapCenter = null
+  mapCenter = null,
+  shouldOpenMarker = false,
+  onMarkerOpened
 }: MapComponentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
@@ -56,6 +60,25 @@ export default function MapComponent({
       setIsMounted(false);
     };
   }, []);
+
+  // Open marker popup when navigating from URL (from "Lihat di Peta" button)
+  useEffect(() => {
+    if (shouldOpenMarker && selectedDisaster && mapInstanceRef.current && markersRef.current.length > 0) {
+      // Find the marker for the selected disaster
+      const markerIndex = disasters.findIndex(d => d.id === selectedDisaster.id);
+      
+      if (markerIndex !== -1 && markersRef.current[markerIndex]) {
+        const marker = markersRef.current[markerIndex];
+        // Open the popup for this marker
+        marker.openPopup();
+        
+        // Notify parent that marker has been opened
+        if (onMarkerOpened) {
+          onMarkerOpened();
+        }
+      }
+    }
+  }, [shouldOpenMarker, selectedDisaster, disasters, onMarkerOpened]);
 
   // Create custom icon
   const createCustomIcon = useCallback((L: typeof import('leaflet'), tingkatKerusakan: string): DivIcon => {

@@ -227,38 +227,20 @@ export default function UserReportDetailModal({
 
         {/* Modal Footer */}
         <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-end gap-3">
             <button
-              onClick={() => {
-                // Open map at this marker's location
-                const url = new URL(window.location.href);
-                url.searchParams.set('lat', disaster.lat.toString());
-                url.searchParams.set('lng', disaster.lng.toString());
-                url.searchParams.set('id', disaster.id.toString());
-                window.location.href = url.toString();
-              }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              onClick={onOpenInvalidReportForm}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              Lihat di Peta
+              <AlertCircle className="w-4 h-4" />
+              Laporkan Tidak Valid
             </button>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={onOpenInvalidReportForm}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-              >
-                <AlertCircle className="w-4 h-4" />
-                Laporkan Tidak Valid
-              </button>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Tutup
+            </button>
           </div>
         </div>
       </div>

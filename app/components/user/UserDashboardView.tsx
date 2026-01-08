@@ -60,6 +60,7 @@ export default function UserDashboardView() {
   }>>([]);
   const [loadingInvalidReports, setLoadingInvalidReports] = useState(false);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [shouldOpenMarker, setShouldOpenMarker] = useState(false);
 
   // Load disasters from API
   const loadDisasters = async () => {
@@ -81,24 +82,25 @@ export default function UserDashboardView() {
     loadDisasters();
   }, []);
 
-  // Handle URL parameters for map navigation - ONLY ONCE on initial load
+  // Handle URL parameters for map navigation - from "Lihat di Peta" button
   useEffect(() => {
     const lat = searchParams.get('lat');
     const lng = searchParams.get('lng');
     const id = searchParams.get('id');
     
-    if (lat && lng) {
+    if (lat && lng && disasters.length > 0) {
       setMapCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
       
       // Find and select the disaster if id is provided
-      if (id && disasters.length > 0) {
+      if (id) {
         const disaster = disasters.find(d => d.id === parseInt(id));
         if (disaster) {
-          setSelectedDisaster(disaster);
+          setSelectedDisaster(disaster); // Sidebar will show automatically
+          setShouldOpenMarker(true); // Trigger leaflet popup to open
         }
       }
 
-      // Clear URL params after setting map center to prevent re-triggering
+      // Clear URL params immediately after processing
       // This allows users to click other markers without being forced back
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
@@ -274,7 +276,10 @@ export default function UserDashboardView() {
               <MapComponent 
                 key="dashboard-map"
                 selectedDisaster={selectedDisaster} 
-                onDisasterSelect={setSelectedDisaster}
+                onDisasterSelect={(disaster) => {
+                  setSelectedDisaster(disaster);
+                  setMapCenter(null); // Reset mapCenter so clicking other markers works freely
+                }}
                 onOpenDetailOverlay={(disaster) => {
                   setSelectedDisaster(disaster);
                   setShowDetailOverlay(true);
@@ -282,6 +287,8 @@ export default function UserDashboardView() {
                 disasters={disasters}
                 isDetailOverlayOpen={showDetailOverlay}
                 mapCenter={mapCenter}
+                shouldOpenMarker={shouldOpenMarker}
+                onMarkerOpened={() => setShouldOpenMarker(false)}
               />
             </div>
           </div>
