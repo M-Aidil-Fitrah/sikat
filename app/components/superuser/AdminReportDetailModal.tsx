@@ -77,10 +77,10 @@ export default function AdminReportDetailModal({
                 alt={report.namaObjek}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+              <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
             </div>
           ) : (
-            <div className="h-full bg-gradient-to-r from-red-600 to-orange-500"></div>
+            <div className="h-full bg-linear-to-r from-red-600 to-orange-500"></div>
           )}
           
           <button
@@ -114,7 +114,7 @@ export default function AdminReportDetailModal({
               'bg-red-100 text-red-700'
             }`}>
               {report.status === 'PENDING' ? 'Menunggu Verifikasi' : 
-               report.status === 'APPROVED' ? '✓ Disetujui' : '✗ Ditolak'}
+               report.status === 'APPROVED' ? '✓ Telah Diverifikasi' : '✗ Ditolak'}
             </span>
           </div>
 
@@ -209,7 +209,7 @@ export default function AdminReportDetailModal({
               <button
                 onClick={() => onUpdateStatus(report.id, 'APPROVED')}
                 disabled={isUpdating === report.id}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUpdating === report.id ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -221,7 +221,7 @@ export default function AdminReportDetailModal({
               <button
                 onClick={() => onUpdateStatus(report.id, 'REJECTED')}
                 disabled={isUpdating === report.id}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-linear-to-r from-red-600 to-rose-600 text-white font-semibold rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUpdating === report.id ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

@@ -39,7 +39,7 @@ export default function Navbar() {
                 alt="Logo SATGAS USK"
                 className="h-10 w-auto"
               />
-              <div className="hidden sm:block">
+              <div>
                 <span className="text-base font-bold tracking-tight text-gray-900">
                   GEOTAGGING
                 </span>

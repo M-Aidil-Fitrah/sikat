@@ -3,10 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AdminReportDetailModal from './AdminReportDetailModal';
+import Pagination from '@/app/components/ui/Pagination';
 import * as XLSX from 'xlsx';
 import { 
-  CheckCircle2, 
-  XCircle, 
   Clock, 
   MapPin, 
   User, 
@@ -76,6 +75,10 @@ export default function AdminDashboardView() {
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Load reports on mount
   useEffect(() => {
@@ -161,6 +164,19 @@ export default function AdminDashboardView() {
     return result;
   }, [reports, statusFilter, searchQuery, sortField, sortOrder]);
 
+  // Paginated reports
+  const paginatedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredReports.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredReports, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchQuery, itemsPerPage]);
+
   const loadReports = async () => {
     setIsLoading(true);
     try {
@@ -213,7 +229,7 @@ export default function AdminDashboardView() {
         throw new Error(data.error || 'Gagal mengupdate status');
       }
 
-      alert(`Laporan berhasil ${newStatus === 'APPROVED' ? 'disetujui' : 'ditolak'}!`);
+      alert(`Laporan berhasil ${newStatus === 'APPROVED' ? 'diverifikasi' : 'ditolak'}!`);
       await loadReports();
       setShowDetailModal(false);
       setSelectedReport(null);
@@ -307,7 +323,7 @@ export default function AdminDashboardView() {
       'Nama Pelapor': report.namaPelapor,
       'Kontak': report.kontak,
       'Keterangan': report.keteranganKerusakan,
-      'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Disetujui' : 'Ditolak',
+      'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Telah Diverifikasi' : 'Ditolak',
       'Status Penanganan': report.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani',
       'Tanggal Lapor': formatDateTime(report.submittedAt || report.createdAt),
       'Tanggal Review': report.reviewedAt ? formatDateTime(report.reviewedAt) : '-',
@@ -430,7 +446,7 @@ export default function AdminDashboardView() {
               }`}
             >
               <div className={`text-2xl font-bold ${statusFilter === 'APPROVED' ? 'text-white' : 'text-green-600'}`}>{stats.approved}</div>
-              <div className={`text-xs font-medium ${statusFilter === 'APPROVED' ? 'text-green-100' : 'text-green-600'}`}>Disetujui</div>
+              <div className={`text-xs font-medium ${statusFilter === 'APPROVED' ? 'text-green-100' : 'text-green-600'}`}>Terverifikasi</div>
             </button>
             <button 
               onClick={() => setStatusFilter('REJECTED')}
@@ -517,7 +533,7 @@ export default function AdminDashboardView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredReports.map((report) => {
+                    {paginatedReports.map((report) => {
                       const severityStyle = getSeverityBadge(report.tingkatKerusakan);
                       return (
                         <tr key={report.id} className="hover:bg-gray-50 transition-colors">
@@ -528,7 +544,9 @@ export default function AdminDashboardView() {
                           </td>
                           <td className="py-3 px-4">
                             <div className="min-w-0">
-                              <p className="font-medium text-gray-900 text-sm truncate">{report.namaObjek}</p>
+                              <p className="font-medium text-gray-900 text-sm truncate max-w-32" title={report.namaObjek}>
+                                {report.namaObjek.length > 20 ? `${report.namaObjek.slice(0, 20)}...` : report.namaObjek}
+                              </p>
                               <p className="text-xs text-gray-500 truncate flex items-center gap-1">
                                 <User className="w-3 h-3" /> {report.namaPelapor}
                               </p>
@@ -541,9 +559,22 @@ export default function AdminDashboardView() {
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(report.status)}`}>
-                              {report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Disetujui' : 'Ditolak'}
-                            </span>
+                            {report.status === 'PENDING' ? (
+                              <select
+                                value={report.status}
+                                onChange={(e) => updateStatus(report.id, e.target.value as 'APPROVED' | 'REJECTED')}
+                                disabled={isUpdating === report.id}
+                                className={`text-xs px-2 py-1 rounded-full font-medium border-0 cursor-pointer ${getStatusBadge(report.status)} disabled:opacity-50`}
+                              >
+                                <option value="PENDING">Menunggu</option>
+                                <option value="APPROVED">Verifikasi</option>
+                                <option value="REJECTED">Tolak</option>
+                              </select>
+                            ) : (
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(report.status)}`}>
+                                {report.status === 'APPROVED' ? 'Telah Diverifikasi' : 'Ditolak'}
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${severityStyle.badge}`}>
@@ -580,26 +611,6 @@ export default function AdminDashboardView() {
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
-                              {report.status === 'PENDING' && (
-                                <>
-                                  <button
-                                    onClick={() => updateStatus(report.id, 'APPROVED')}
-                                    disabled={isUpdating === report.id}
-                                    className="p-1.5 text-green-500 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                                    title="Setujui"
-                                  >
-                                    {isUpdating === report.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                                  </button>
-                                  <button
-                                    onClick={() => updateStatus(report.id, 'REJECTED')}
-                                    disabled={isUpdating === report.id}
-                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                    title="Tolak"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
-                                </>
-                              )}
                               <button
                                 onClick={() => deleteReport(report.id)}
                                 disabled={isDeleting === report.id}
@@ -617,9 +628,14 @@ export default function AdminDashboardView() {
                 </table>
               </div>
               
-              <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-                Menampilkan {filteredReports.length} dari {reports.length} laporan
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredReports.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
             </div>
           )}
         </div>

@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import type { DisasterData } from "@/lib/types";
-import { getReports } from "@/lib/api";
+import { getAllReports } from "@/lib/api";
+import Pagination from "@/app/components/ui/Pagination";
 import { 
   MapPin, 
   User, 
@@ -51,16 +52,19 @@ export default function LaporanView() {
   // Detail modal
   const [selectedReport, setSelectedReport] = useState<DisasterData | null>(null);
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<string | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Load reports
   const loadReports = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await getReports();
-      // Filter only approved reports
-      const approvedReports = data.filter(r => r.status === "APPROVED");
-      setReports(approvedReports);
+      const data = await getAllReports();
+      // Show all reports (not just approved)
+      setReports(data);
     } catch (err) {
       console.error("Error loading reports:", err);
       setError("Gagal memuat data laporan");
@@ -128,6 +132,19 @@ export default function LaporanView() {
     return result;
   }, [reports, searchQuery, sortField, sortOrder]);
 
+  // Paginated reports
+  const paginatedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredReports.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredReports, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, itemsPerPage]);
+
   // Navigate to dashboard with coordinates
   const viewOnMap = (report: DisasterData) => {
     router.push(`/dashboard?lat=${report.lat}&lng=${report.lng}&id=${report.id}`);
@@ -136,9 +153,9 @@ export default function LaporanView() {
   // Stats
   const stats = useMemo(() => ({
     total: reports.length,
-    berat: reports.filter(r => r.tingkatKerusakan === "Berat").length,
-    sedang: reports.filter(r => r.tingkatKerusakan === "Sedang").length,
-    ringan: reports.filter(r => r.tingkatKerusakan === "Ringan").length,
+    pending: reports.filter(r => r.status === "PENDING").length,
+    approved: reports.filter(r => r.status === "APPROVED").length,
+    rejected: reports.filter(r => r.status === "REJECTED").length,
   }), [reports]);
 
   const getSeverityColor = (severity: string) => {
@@ -181,7 +198,7 @@ export default function LaporanView() {
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Daftar Laporan</h1>
               <p className="text-gray-500 mt-1 text-sm">
-                Laporan bencana yang telah diverifikasi
+                Semua laporan bencana
               </p>
             </div>
             <button 
@@ -205,17 +222,17 @@ export default function LaporanView() {
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
               <div className="text-xs text-gray-500 font-medium">Total Laporan</div>
             </div>
-            <div className="bg-red-50 rounded-xl border border-red-100 p-4">
-              <div className="text-2xl font-bold text-red-600">{stats.berat}</div>
-              <div className="text-xs text-red-600 font-medium">Berat</div>
-            </div>
             <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
-              <div className="text-2xl font-bold text-amber-600">{stats.sedang}</div>
-              <div className="text-xs text-amber-600 font-medium">Sedang</div>
+              <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
+              <div className="text-xs text-amber-600 font-medium">Menunggu</div>
             </div>
-            <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
-              <div className="text-2xl font-bold text-emerald-600">{stats.ringan}</div>
-              <div className="text-xs text-emerald-600 font-medium">Ringan</div>
+            <div className="bg-green-50 rounded-xl border border-green-100 p-4">
+              <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
+              <div className="text-xs text-green-600 font-medium">Terverifikasi</div>
+            </div>
+            <div className="bg-red-50 rounded-xl border border-red-100 p-4">
+              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+              <div className="text-xs text-red-600 font-medium">Ditolak</div>
             </div>
           </div>
 
@@ -317,6 +334,9 @@ export default function LaporanView() {
                           Tingkat <SortIcon field="tingkatKerusakan" />
                         </button>
                       </th>
+                      <th className="text-left py-3 px-4">
+                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</span>
+                      </th>
                       <th className="text-left py-3 px-4 hidden lg:table-cell">
                         <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Pelapor</span>
                       </th>
@@ -334,7 +354,7 @@ export default function LaporanView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredReports.map((report) => {
+                    {paginatedReports.map((report) => {
                       const colors = getSeverityColor(report.tingkatKerusakan);
                       return (
                         <tr key={report.id} className="hover:bg-gray-50 transition-colors">
@@ -360,7 +380,9 @@ export default function LaporanView() {
                                 </div>
                               )}
                               <div className="min-w-0">
-                                <p className="font-medium text-gray-900 text-sm truncate">{report.namaObjek}</p>
+                                <p className="font-medium text-gray-900 text-sm truncate max-w-32" title={report.namaObjek}>
+                                  {report.namaObjek.length > 20 ? `${report.namaObjek.slice(0, 20)}...` : report.namaObjek}
+                                </p>
                                 <p className="text-xs text-gray-500 truncate">{report.jenisKerusakan}</p>
                               </div>
                             </div>
@@ -375,6 +397,15 @@ export default function LaporanView() {
                             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium ${colors.badge}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${colors.dot}`}></span>
                               {report.tingkatKerusakan}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                              report.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                              report.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Terverifikasi' : 'Ditolak'}
                             </span>
                           </td>
                           <td className="py-3 px-4 hidden lg:table-cell">
@@ -414,10 +445,15 @@ export default function LaporanView() {
                 </table>
               </div>
               
-              {/* Table Footer */}
-              <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-                Menampilkan {filteredReports.length} dari {reports.length} laporan
-              </div>
+              {/* Pagination */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredReports.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
             </div>
           )}
         </div>

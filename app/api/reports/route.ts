@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { autoApproveOldReports } from '@/lib/auto-approve';
 import { ReportStatus } from '@prisma/client';
 import { getReportsWithCoordinates } from '@/lib/postgis-helper';
 
 // GET /api/reports - Get all approved reports (public)
 export async function GET(request: NextRequest) {
   try {
-    // Auto-approve old reports sebelum fetch
-    await autoApproveOldReports();
-
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const includeAll = searchParams.get('includeAll') === 'true';

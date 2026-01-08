@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { ReportStatus } from '@prisma/client';
-import { autoApproveOldReports } from '@/lib/auto-approve';
 import { verifyToken } from '@/lib/jwt';
 import { getReportsWithCoordinates } from '@/lib/postgis-helper';
 
@@ -26,9 +25,6 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    // Auto-approve old reports
-    await autoApproveOldReports();
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');

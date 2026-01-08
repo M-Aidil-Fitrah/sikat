@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import Pagination from '@/app/components/ui/Pagination';
 import { 
   AlertTriangle,
   User,
@@ -96,6 +97,10 @@ export default function InvalidReportsView() {
     invalidReport: GroupedInvalidReports['invalidReports'][0];
     report: Report;
   } | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Load invalid reports
   const loadInvalidReports = async () => {
@@ -199,6 +204,19 @@ export default function InvalidReportsView() {
     return result;
   }, [groupedReports, searchQuery, sortField, sortOrder]);
 
+  // Paginated reports
+  const paginatedGroupedReports = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredGroupedReports.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredGroupedReports, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredGroupedReports.length / itemsPerPage);
+
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, itemsPerPage]);
+
   const toggleExpand = (reportId: number) => {
     setExpandedReports(prev => {
       const newSet = new Set(prev);
@@ -282,7 +300,7 @@ export default function InvalidReportsView() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
               <div className="text-2xl font-bold text-amber-600">{invalidReports.length}</div>
               <div className="text-xs text-amber-600 font-medium">Total Laporan</div>
@@ -290,12 +308,6 @@ export default function InvalidReportsView() {
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="text-2xl font-bold text-gray-900">{groupedReports.length}</div>
               <div className="text-xs text-gray-500 font-medium">Laporan Terpengaruh</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-2xl font-bold text-gray-900">
-                {groupedReports.length > 0 ? (invalidReports.length / groupedReports.length).toFixed(1) : '0'}
-              </div>
-              <div className="text-xs text-gray-500 font-medium">Rata-rata per Objek</div>
             </div>
           </div>
 
@@ -374,14 +386,14 @@ export default function InvalidReportsView() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {filteredGroupedReports.map((group) => {
+                    {paginatedGroupedReports.map((group) => {
                       const isExpanded = expandedReports.has(group.reportId);
                       const latestReport = group.invalidReports.reduce((latest, current) => 
                         new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
                       , group.invalidReports[0]);
 
                       return (
-                        <>
+                        <React.Fragment key={group.reportId}>
                           <tr key={group.reportId} className="hover:bg-gray-50 transition-colors">
                             <td className="py-3 px-4">
                               <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
@@ -390,7 +402,9 @@ export default function InvalidReportsView() {
                             </td>
                             <td className="py-3 px-4">
                               <div className="min-w-0">
-                                <p className="font-medium text-gray-900 text-sm truncate">{group.report.namaObjek}</p>
+                                <p className="font-medium text-gray-900 text-sm truncate max-w-32" title={group.report.namaObjek}>
+                                  {group.report.namaObjek.length > 20 ? `${group.report.namaObjek.slice(0, 20)}...` : group.report.namaObjek}
+                                </p>
                                 <span className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${getSeverityBadge(group.report.tingkatKerusakan)}`}>
                                   {group.report.tingkatKerusakan}
                                 </span>
@@ -483,18 +497,21 @@ export default function InvalidReportsView() {
                               </td>
                             </tr>
                           )}
-                        </>
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
               
-              <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
-                Menampilkan {filteredGroupedReports.length} laporan terpengaruh dengan total {
-                  filteredGroupedReports.reduce((sum, g) => sum + g.invalidReports.length, 0)
-                } laporan tidak valid
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredGroupedReports.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
             </div>
           )}
         </div>
