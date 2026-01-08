@@ -1,6 +1,7 @@
 "use client";
+
 import { useState, useRef, useEffect } from 'react';
-import { X, Camera, Upload, MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { X, Camera, Upload, MapPin, Loader2, AlertCircle, SwitchCamera } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { LeafletMouseEvent } from 'leaflet';
 import { createReport, uploadPhotos } from '@/lib/api';
@@ -11,10 +12,12 @@ const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
 );
+
 const TileLayer = dynamic(
   () => import('react-leaflet').then((mod) => mod.TileLayer),
   { ssr: false }
 );
+
 const Marker = dynamic(
   () => import('react-leaflet').then((mod) => {
     // Fix default marker icon
@@ -100,6 +103,11 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  // ========== TAMBAHAN BARU: State untuk Camera Switch ==========
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
+  const [canSwitchCamera, setCanSwitchCamera] = useState(false);
+  // ================================================================
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,6 +136,25 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     }
   }, [capturedPhotos.length, isCameraActive, photoMode]);
 
+  // ========== TAMBAHAN BARU: Check Multiple Cameras ==========
+  useEffect(() => {
+    const checkCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        setCanSwitchCamera(videoDevices.length > 1);
+        console.log(`Found ${videoDevices.length} camera(s)`);
+      } catch (error) {
+        console.error('Error checking cameras:', error);
+      }
+    };
+    
+    if (isCameraActive) {
+      checkCameras();
+    }
+  }, [isCameraActive]);
+  // ============================================================
+
   // Get current location
   const getCurrentLocation = () => {
     setLoadingLocation(true);
@@ -142,11 +169,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        setFormData(prev => ({
-          ...prev,
-          lat: latitude,
-          lng: longitude
-        }));
+        setFormData(prev => ({ ...prev, lat: latitude, lng: longitude }));
 
         // Reverse geocoding
         try {
@@ -159,13 +182,11 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           const city = data.address.city || data.address.town || '';
           const locationName = `${village}${district ? ', ' + district : ''}${city ? ', ' + city : ''}`;
 
-          setFormData(prev => ({
-            ...prev,
-            desaKecamatan: locationName
-          }));
+          setFormData(prev => ({ ...prev, desaKecamatan: locationName }));
         } catch (error) {
           console.error('Error getting location name:', error);
         }
+
         setLoadingLocation(false);
       },
       (error) => {
@@ -176,31 +197,58 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     );
   };
 
-  // Start camera
-  const startCamera = async () => {
+  // ========== PERBAIKAN: Start camera dengan facing mode parameter ==========
+  const startCamera = async (preferredFacingMode?: 'user' | 'environment') => {
     setCameraError('');
     setIsCameraActive(false);
 
+    // Stop existing stream first
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    const modeToUse = preferredFacingMode || facingMode;
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false
-      });
+      // Try with facingMode first (mobile devices)
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: { ideal: modeToUse },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+        console.log(`Camera started with ${modeToUse} facingMode`);
+      } catch (err) {
+        // Fallback for desktop - just get any video device
+        console.log('Falling back to default video device (desktop)');
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+        // On desktop, disable camera switch button
+        setCanSwitchCamera(false);
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
 
+        // Update state immediately when video is ready
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             videoRef.current.play()
               .then(() => {
-                console.log('Camera started successfully');
+                console.log(`Camera ready and playing`);
                 setIsCameraActive(true);
+                setFacingMode(modeToUse);
               })
               .catch((playError) => {
                 console.error('Error playing video:', playError);
@@ -210,17 +258,16 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           }
         };
 
-        // PERBAIKAN: Timeout fallback dengan null check yang benar
+        // Fallback timeout - check if video is ready but event didn't fire
         setTimeout(() => {
-          // Check if video exists and is ready before accessing readyState
-          if (!isCameraActive && videoRef.current && videoRef.current.readyState >= 2) {
+          if (videoRef.current && videoRef.current.readyState >= 2 && streamRef.current?.active && !isCameraActive) {
+            console.log('Fallback: setting camera active via timeout');
             setIsCameraActive(true);
           }
         }, 2000);
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
           setCameraError('Izin kamera ditolak. Silakan izinkan akses kamera di pengaturan browser.');
@@ -234,10 +281,19 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
       } else {
         setCameraError('Gagal mengakses kamera. Pastikan izin kamera telah diberikan.');
       }
-      
       setPhotoMode(null);
     }
   };
+  // ==========================================================================
+
+  // ========== PERBAIKAN: Function untuk Switch Camera ==========
+  const switchCamera = () => {
+    const newMode = facingMode === 'environment' ? 'user' : 'environment';
+    console.log(`Switching camera from ${facingMode} to ${newMode}`);
+    setFacingMode(newMode);
+    startCamera(newMode);
+  };
+  // ==================================================================
 
   // Stop camera
   const stopCamera = () => {
@@ -256,24 +312,33 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
     setIsCameraActive(false);
   };
 
-  // Capture photo
+  // ========== PERBAIKAN: Capture photo dengan mirror untuk front camera ==========
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
+
     if (!context) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
+
+    // Mirror horizontal jika pakai front camera
+    if (facingMode === 'user') {
+      context.save();
+      context.scale(-1, 1);
+      context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      context.restore();
+    } else {
+      context.drawImage(video, 0, 0);
+    }
 
     canvas.toBlob((blob) => {
       if (blob) {
         // Convert blob to File
         const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        
         const reader = new FileReader();
         reader.onloadend = () => {
           const dataUrl = reader.result as string;
@@ -283,6 +348,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
       }
     }, 'image/jpeg', 0.8);
   };
+  // ===============================================================================
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,11 +409,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   // Handle map click
   const handleMapClick = async (lat: number, lng: number) => {
     setSelectedPosition([lat, lng]);
-    setFormData(prev => ({
-      ...prev,
-      lat,
-      lng
-    }));
+    setFormData(prev => ({ ...prev, lat, lng }));
 
     // Reverse geocoding
     try {
@@ -360,10 +422,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
       const city = data.address.city || data.address.town || '';
       const locationName = `${village}${district ? ', ' + district : ''}${city ? ', ' + city : ''}`;
 
-      setFormData(prev => ({
-        ...prev,
-        desaKecamatan: locationName
-      }));
+      setFormData(prev => ({ ...prev, desaKecamatan: locationName }));
     } catch (error) {
       console.error('Error getting location name:', error);
     }
@@ -372,12 +431,12 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   // Handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.lat || !formData.lng) {
       alert('Koordinat lokasi harus diisi');
       return;
     }
-    
+
     if (capturedPhotos.length === 0) {
       alert('Minimal 1 foto harus diupload');
       return;
@@ -421,26 +480,29 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto" style={{ zIndex: 9999 }}>
-      <div className="bg-white rounded-2xl w-full max-w-2xl my-8 shadow-2xl">
-        {/* Header */}
-        <div className="bg-linear-to-r from-red-600 to-orange-600 p-6 rounded-t-2xl flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-white">Tambah Laporan Bencana</h2>
-          <button
-            onClick={onClose}
-            className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-4 border-b">
+            <h2 className="text-2xl font-bold text-gray-900">Tambah Laporan Bencana</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
           {/* Photo Mode Selection */}
           {!photoMode && (
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Pilih Metode Pengambilan Foto</h3>
-              <p className="text-sm text-gray-600 mb-4">Min 1 - Maks 3 foto</p>
-              
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Pilih Metode Pengambilan Foto</h3>
+                <p className="text-sm text-gray-600">Min 1 - Maks 3 foto</p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   type="button"
@@ -448,7 +510,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   className="p-6 border-2 border-gray-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all text-center"
                 >
                   <Camera className="w-12 h-12 mx-auto mb-3 text-red-600" />
-                  <h4 className="font-semibold text-lg mb-1">Ambil Foto</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Ambil Foto</h4>
                   <p className="text-sm text-gray-600">Lokasi otomatis dari GPS</p>
                 </button>
 
@@ -458,12 +520,12 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                   className="p-6 border-2 border-gray-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all text-center"
                 >
                   <Upload className="w-12 h-12 mx-auto mb-3 text-red-600" />
-                  <h4 className="font-semibold text-lg mb-1">Upload Foto</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Upload Foto</h4>
                   <p className="text-sm text-gray-600">Pilih lokasi di peta</p>
                 </button>
               </div>
 
-              <p className="text-xs text-gray-500 mt-3 text-center">
+              <p className="text-xs text-gray-500 text-center">
                 Format: JPG, PNG, HEIC • Ukuran maks: 2MB per foto
               </p>
             </div>
@@ -473,27 +535,43 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           {photoMode === 'capture' && capturedPhotos.length < 3 && (
             <div className="space-y-4">
               <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-                <canvas ref={canvasRef} className="hidden" />
-                
+                {/* ========== TAMBAHAN BARU: Tombol Switch Camera ========== */}
+                {isCameraActive && canSwitchCamera && (
+                  <button
+                    type="button"
+                    onClick={switchCamera}
+                    className="absolute top-4 right-4 z-10 w-12 h-12 bg-white/90 hover:bg-white text-gray-800 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110"
+                    title="Ganti Kamera"
+                  >
+                    <SwitchCamera className="w-6 h-6" />
+                  </button>
+                )}
+                {/* ========================================================= */}
+
+                {/* ========== PERBAIKAN: Indicator Kamera Aktif ========== */}
+                {isCameraActive && (
+                  <div className="absolute top-4 left-4 z-10 bg-red-600 text-white px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-lg">
+                    <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                    {canSwitchCamera 
+                      ? (facingMode === 'environment' ? 'Kamera Belakang' : 'Kamera Depan')
+                      : 'Kamera Aktif'
+                    }
+                  </div>
+                )}
+                {/* ======================================================= */}
+
                 {!isCameraActive && !cameraError && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/80 text-white">
-                    <Loader2 className="w-12 h-12 animate-spin mb-3" />
-                    <p className="font-semibold">Mengaktifkan Kamera...</p>
-                    <p className="text-sm text-gray-300 mt-1">Mohon izinkan akses kamera</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                    <Loader2 className="w-12 h-12 animate-spin mb-4" />
+                    <p className="text-lg font-semibold">Mengaktifkan Kamera...</p>
+                    <p className="text-sm text-gray-300 mt-2">Mohon izinkan akses kamera</p>
                   </div>
                 )}
 
                 {cameraError && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-red-900/80 text-white p-6">
-                    <AlertCircle className="w-12 h-12 mb-3" />
-                    <p className="font-semibold text-center mb-3">{cameraError}</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6">
+                    <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+                    <p className="text-center mb-4">{cameraError}</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -506,6 +584,16 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                     </button>
                   </div>
                 )}
+
+                {/* Video dengan mirror effect untuk front camera */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
+                />
+                <canvas ref={canvasRef} className="hidden" />
               </div>
 
               {isCameraActive && (
@@ -519,7 +607,6 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                     <Camera className="w-5 h-5" />
                     Ambil Foto ({capturedPhotos.length}/3)
                   </button>
-
                   <button
                     type="button"
                     onClick={() => {
@@ -534,9 +621,8 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
               )}
 
               {capturedPhotos.length >= 3 && (
-                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-lg">
-                  <AlertCircle className="w-5 h-5 shrink-0" />
-                  <p className="text-sm font-medium">Maksimal 3 foto sudah tercapai</p>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                  <p className="text-green-700 font-medium">✓ Maksimal 3 foto sudah tercapai</p>
                 </div>
               )}
             </div>
@@ -561,11 +647,9 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                 className="w-full p-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 disabled:hover:bg-transparent"
               >
                 <Upload className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                <p className="font-semibold text-gray-700">Upload Foto</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Min 1 - Maks 3 foto (JPG, PNG, HEIC)
-                </p>
-                <p className="text-xs text-gray-400 mt-1">Maksimal 2MB per foto</p>
+                <p className="font-semibold text-gray-900 mb-1">Upload Foto</p>
+                <p className="text-sm text-gray-600">Min 1 - Maks 3 foto (JPG, PNG, HEIC)</p>
+                <p className="text-xs text-gray-500 mt-1">Maksimal 2MB per foto</p>
               </button>
 
               {capturedPhotos.length === 0 && (
@@ -582,38 +666,41 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
           {/* Location Loading */}
           {loadingLocation && (
-            <div className="flex items-center gap-3 text-blue-600 bg-blue-50 p-4 rounded-xl">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <p className="font-medium">Mengambil lokasi Anda...</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
+              <p className="text-blue-700 font-medium">Mengambil lokasi Anda...</p>
             </div>
           )}
 
           {/* Location Error */}
           {locationError && (
-            <div className="flex items-start gap-3 text-red-600 bg-red-50 p-4 rounded-xl">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <p className="text-sm">{locationError}</p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <p className="text-red-700 text-sm">{locationError}</p>
+              </div>
             </div>
           )}
 
           {/* Map for Upload Mode */}
           {photoMode === 'upload' && showMap && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600">
-                <MapPin className="w-4 h-4 inline mr-1" />
-                Klik pada peta untuk menentukan lokasi kejadian
-              </p>
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-blue-700 text-sm font-medium text-center">
+                  Klik pada peta untuk menentukan lokasi kejadian
+                </p>
+              </div>
 
               <div className="h-96 rounded-xl overflow-hidden border-2 border-gray-200">
                 {typeof window !== 'undefined' && (
                   <MapContainer
-                    center={mapCenter}
+                    center={selectedPosition || mapCenter}
                     zoom={13}
                     style={{ height: '100%', width: '100%' }}
                   >
                     <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     />
                     <MapClickHandler onLocationSelect={handleMapClick} />
                     {selectedPosition && (
@@ -628,17 +715,19 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           {/* Photo Preview */}
           {capturedPhotos.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold">
-                Foto Lokasi ({capturedPhotos.length}/3)
-              </h3>
-              
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Foto Lokasi ({capturedPhotos.length}/3)
+                </h3>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 {capturedPhotos.map((photo, index) => (
-                  <div key={index} className="relative group aspect-square">
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden group">
                     <img
                       src={photo.dataUrl}
                       alt={`Foto ${index + 1}`}
-                      className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
+                      className="w-full h-full object-cover"
                     />
                     <button
                       type="button"
@@ -673,9 +762,9 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
 
           {/* Coordinates Display */}
           {formData.lat && formData.lng && (
-            <div className="bg-gray-50 p-4 rounded-xl">
-              <p className="text-sm text-gray-600 mb-1">Koordinat Lokasi</p>
-              <p className="font-mono text-sm font-semibold text-gray-800">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-green-900 mb-1">Koordinat Lokasi</h3>
+              <p className="text-sm text-green-700 font-mono">
                 {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
               </p>
             </div>
@@ -684,124 +773,125 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
           {/* Form Fields */}
           {(formData.lat && formData.lng) && (
             <>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nama Pelapor *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.namaPelapor}
-                  onChange={(e) => setFormData(prev => ({ ...prev, namaPelapor: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Nama lengkap"
-                />
-              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Nama Pelapor *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.namaPelapor}
+                    onChange={(e) => setFormData(prev => ({ ...prev, namaPelapor: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Nama lengkap"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nomor Kontak (WhatsApp) *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.kontak}
-                  onChange={(e) => {
-                    // Only allow numbers
-                    const value = e.target.value.replace(/\D/g, '');
-                    setFormData(prev => ({ ...prev, kontak: value }));
-                  }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="081234567890"
-                  maxLength={15}
-                  pattern="[0-9]*"
-                />
-                <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa +62)</p>
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Nomor Kontak (WhatsApp) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.kontak}
+                    onChange={(e) => {
+                      // Only allow numbers
+                      const value = e.target.value.replace(/\D/g, '');
+                      setFormData(prev => ({ ...prev, kontak: value }));
+                    }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="081234567890"
+                    maxLength={15}
+                    pattern="[0-9]*"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Contoh: 081234567890 (tanpa +62)</p>
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Desa / Kecamatan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.desaKecamatan}
-                  onChange={(e) => setFormData(prev => ({ ...prev, desaKecamatan: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
-                  placeholder="Otomatis dari koordinat"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Desa / Kecamatan *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.desaKecamatan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, desaKecamatan: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent bg-gray-50"
+                    placeholder="Otomatis dari koordinat"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nama Objek / Bangunan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.namaObjek}
-                  onChange={(e) => setFormData(prev => ({ ...prev, namaObjek: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Contoh: Jembatan Krueng Raya, Jalan Nasional ... , Rumah Sakit ..."
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Nama Objek / Bangunan *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.namaObjek}
+                    onChange={(e) => setFormData(prev => ({ ...prev, namaObjek: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Contoh: Jembatan Krueng Raya, Jalan Nasional ... , Rumah Sakit ..."
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Jenis Kerusakan*
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.jenisKerusakan}
-                  onChange={(e) => setFormData(prev => ({ ...prev, jenisKerusakan: e.target.value }))}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Contoh: Rumah terendam banjir, Jalan tergenang, Jembatan rusak, Sawah terendam, Fasilitas umum terdampak"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Jenis Kerusakan*
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.jenisKerusakan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, jenisKerusakan: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Contoh: Rumah terendam banjir, Jalan tergenang, Jembatan rusak, Sawah terendam, Fasilitas umum terdampak"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Tingkat Kerusakan *
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {(['Ringan', 'Sedang', 'Berat'] as const).map((level) => (
-                    <button
-                      key={level}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, tingkatKerusakan: level as TingkatKerusakan }))}
-                      className={`px-4 py-3 rounded-xl font-semibold transition-all ${
-                        formData.tingkatKerusakan === level
-                          ? level === 'Berat'
-                            ? 'bg-red-600 text-white'
-                            : level === 'Sedang'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-green-500 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Tingkat Kerusakan *
+                  </label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(['Ringan', 'Sedang', 'Berat'] as const).map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, tingkatKerusakan: level as TingkatKerusakan }))}
+                        className={`px-4 py-3 rounded-xl font-semibold transition-all ${
+                          formData.tingkatKerusakan === level
+                            ? level === 'Berat'
+                              ? 'bg-red-600 text-white'
+                              : level === 'Sedang'
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-green-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Keterangan Kerusakan & Kebutuhan *
+                  </label>
+                  <textarea
+                    required
+                    value={formData.keteranganKerusakan}
+                    onChange={(e) => setFormData(prev => ({ ...prev, keteranganKerusakan: e.target.value }))}
+                    rows={4}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                    placeholder="Contoh: Air setinggi ±70 cm masuk ke rumah sejak malam hari. Perabotan rusak dan warga belum bisa beraktivitas normal. Saat ini membutuhkan bantuan air bersih, sembako, dan selimut."
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Keterangan Kerusakan & Kebutuhan *
-                </label>
-                <textarea
-                  required
-                  value={formData.keteranganKerusakan}
-                  onChange={(e) => setFormData(prev => ({ ...prev, keteranganKerusakan: e.target.value }))}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                  placeholder="Contoh: Air setinggi ±70 cm masuk ke rumah sejak malam hari. Perabotan rusak dan warga belum bisa beraktivitas normal. Saat ini membutuhkan bantuan air bersih, sembako, dan selimut."
-                />
-              </div>
-
-              {/* Submit Button */}
               {/* Submit Error */}
               {submitError && (
                 <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-lg">
@@ -810,6 +900,7 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                 </div>
               )}
 
+              {/* Submit Button */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
@@ -825,7 +916,6 @@ export default function DisasterForm({ onClose, onSubmit }: DisasterFormProps) {
                     'Kirim Laporan'
                   )}
                 </button>
-
                 <button
                   type="button"
                   onClick={onClose}

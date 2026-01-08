@@ -309,34 +309,128 @@ export default function AdminDashboardView() {
     setShowDetailModal(true);
   };
 
-  // Download reports as Excel
-  const downloadExcel = () => {
-    const excelData = filteredReports.map((report, index) => ({
-      'No': index + 1,
-      'ID': report.id,
-      'Nama Objek': report.namaObjek,
-      'Jenis Kerusakan': report.jenisKerusakan,
-      'Tingkat Kerusakan': report.tingkatKerusakan,
-      'Lokasi': report.desaKecamatan,
-      'Latitude': report.lat ?? 'N/A',
-      'Longitude': report.lng ?? 'N/A',
-      'Nama Pelapor': report.namaPelapor,
-      'Kontak': report.kontak,
-      'Keterangan': report.keteranganKerusakan,
-      'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Telah Diverifikasi' : 'Ditolak',
-      'Status Penanganan': report.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani',
-      'Tanggal Lapor': formatDateTime(report.submittedAt || report.createdAt),
-      'Tanggal Review': report.reviewedAt ? formatDateTime(report.reviewedAt) : '-',
-      'Direview Oleh': report.reviewedBy ? report.reviewedBy.name : '-',
-    }));
+  // Download reports as Excel with multiple sheets
+  const downloadExcel = async () => {
+    try {
+      // Sheet 1: Laporan Utama
+      const reportsData = filteredReports.map((report, index) => ({
+        'No': index + 1,
+        'ID': report.id,
+        'Nama Objek': report.namaObjek,
+        'Jenis Kerusakan': report.jenisKerusakan,
+        'Tingkat Kerusakan': report.tingkatKerusakan,
+        'Lokasi': report.desaKecamatan,
+        'Latitude': report.lat ?? 'N/A',
+        'Longitude': report.lng ?? 'N/A',
+        'Nama Pelapor': report.namaPelapor,
+        'Kontak': report.kontak,
+        'Keterangan': report.keteranganKerusakan,
+        'Status': report.status === 'PENDING' ? 'Menunggu' : report.status === 'APPROVED' ? 'Telah Diverifikasi' : 'Ditolak',
+        'Status Penanganan': report.statusTangani === 'SUDAH_DITANGANI' ? 'Sudah Ditangani' : 'Belum Ditangani',
+        'Tanggal Lapor': formatDateTime(report.submittedAt || report.createdAt),
+        'Tanggal Review': report.reviewedAt ? formatDateTime(report.reviewedAt) : '-',
+        'Direview Oleh': report.reviewedBy ? report.reviewedBy.name : '-',
+        'Jumlah Laporan Tidak Valid': report.invalidReportsCount || 0,
+      }));
 
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Laporan');
-    
-    const today = new Date();
-    const filename = `Laporan_Bencana_${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}.xlsx`;
-    XLSX.writeFile(wb, filename);
+      const wsReports = XLSX.utils.json_to_sheet(reportsData);
+      
+      // Set column widths untuk sheet Laporan
+      wsReports['!cols'] = [
+        { wch: 5 },  // No
+        { wch: 8 },  // ID
+        { wch: 25 }, // Nama Objek
+        { wch: 25 }, // Jenis Kerusakan
+        { wch: 15 }, // Tingkat Kerusakan
+        { wch: 30 }, // Lokasi
+        { wch: 12 }, // Latitude
+        { wch: 12 }, // Longitude
+        { wch: 20 }, // Nama Pelapor
+        { wch: 15 }, // Kontak
+        { wch: 40 }, // Keterangan
+        { wch: 18 }, // Status
+        { wch: 18 }, // Status Penanganan
+        { wch: 20 }, // Tanggal Lapor
+        { wch: 20 }, // Tanggal Review
+        { wch: 20 }, // Direview Oleh
+        { wch: 12 }, // Jumlah Laporan Tidak Valid
+      ];
+
+      // Sheet 2: Laporan Tidak Valid
+      const invalidReportsResponse = await fetch('/api/invalid-reports');
+      let invalidReportsData: Array<{
+        'No': number;
+        'ID Laporan Tidak Valid': string;
+        'ID Laporan Utama': number;
+        'Nama Objek (Laporan Utama)': string;
+        'Lokasi (Laporan Utama)': string;
+        'Alasan Tidak Valid': string;
+        'Pelapor Keberatan': string;
+        'Kontak Pelapor': string;
+        'Tanggal Dilaporkan': string;
+      }> = [];
+      
+      if (invalidReportsResponse.ok) {
+        const invalidData = await invalidReportsResponse.json();
+        if (invalidData.success && Array.isArray(invalidData.data)) {
+          invalidReportsData = invalidData.data.map((ir: {
+            id: string;
+            reportId: number;
+            report?: { namaObjek?: string; desaKecamatan?: string };
+            reason: string;
+            reporterName: string | null;
+            kontak: string | null;
+            createdAt: string;
+          }, index: number) => ({
+            'No': index + 1,
+            'ID Laporan Tidak Valid': ir.id,
+            'ID Laporan Utama': ir.reportId,
+            'Nama Objek (Laporan Utama)': ir.report?.namaObjek || 'N/A',
+            'Lokasi (Laporan Utama)': ir.report?.desaKecamatan || 'N/A',
+            'Alasan Tidak Valid': ir.reason,
+            'Pelapor Keberatan': ir.reporterName || 'Anonim',
+            'Kontak Pelapor': ir.kontak || 'Tidak Ada',
+            'Tanggal Dilaporkan': formatDateTime(ir.createdAt),
+          }));
+        }
+      }
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      
+      // Add Laporan sheet
+      XLSX.utils.book_append_sheet(wb, wsReports, 'Laporan Bencana');
+      
+      // Add Invalid Reports sheet if there's data
+      if (invalidReportsData.length > 0) {
+        const wsInvalid = XLSX.utils.json_to_sheet(invalidReportsData);
+        
+        // Set column widths untuk sheet Laporan Tidak Valid
+        wsInvalid['!cols'] = [
+          { wch: 5 },  // No
+          { wch: 25 }, // ID Laporan Tidak Valid
+          { wch: 15 }, // ID Laporan Utama
+          { wch: 30 }, // Nama Objek
+          { wch: 30 }, // Lokasi
+          { wch: 50 }, // Alasan
+          { wch: 20 }, // Pelapor
+          { wch: 15 }, // Kontak
+          { wch: 20 }, // Tanggal
+        ];
+        
+        XLSX.utils.book_append_sheet(wb, wsInvalid, 'Laporan Tidak Valid');
+      }
+      
+      // Generate filename
+      const today = new Date();
+      const filename = `Laporan_Bencana_${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}.xlsx`;
+      
+      // Write file
+      XLSX.writeFile(wb, filename);
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+      alert('Gagal mengunduh Excel. Silakan coba lagi.');
+    }
   };
 
   const stats = {
