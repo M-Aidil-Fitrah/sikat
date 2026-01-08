@@ -11,19 +11,31 @@ export async function GET(request: NextRequest) {
     const includeAll = searchParams.get('includeAll') === 'true';
 
     // Default: hanya tampilkan approved reports untuk public
-    const statusFilter = includeAll
-      ? undefined
-      : status && Object.values(ReportStatus).includes(status as ReportStatus)
-      ? status
-      : ReportStatus.APPROVED;
+    // includeAll=true: tampilkan semua KECUALI REJECTED (untuk user dashboard/laporan)
+    // Rejected reports hanya ditampilkan di admin
+    let statusFilter: string | undefined;
+    
+    if (includeAll) {
+      // For user views - exclude REJECTED, show PENDING and APPROVED only
+      statusFilter = undefined; // Will be filtered below
+    } else if (status && Object.values(ReportStatus).includes(status as ReportStatus)) {
+      statusFilter = status;
+    } else {
+      statusFilter = ReportStatus.APPROVED;
+    }
 
     // Get reports dengan koordinat dari PostGIS
     const reports = await getReportsWithCoordinates(
       statusFilter ? { status: statusFilter } : undefined
     );
 
+    // Filter out REJECTED reports for includeAll (user views)
+    const filteredReports = includeAll 
+      ? reports.filter(r => r.status !== 'REJECTED')
+      : reports;
+
     // Get reviewedBy data untuk setiap report
-    const reportIds = reports.map(r => r.reviewedById).filter((id): id is number => id !== null);
+    const reportIds = filteredReports.map(r => r.reviewedById).filter((id): id is number => id !== null);
     const users = reportIds.length > 0
       ? await prisma.user.findMany({
           where: { id: { in: reportIds } },
@@ -46,7 +58,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Transform data untuk compatibility dengan frontend
-    const transformedReports = reports.map((report) => ({
+    const transformedReports = filteredReports.map((report) => ({
       ...report,
       timestamp: getRelativeTime(report.submittedAt),
       reviewedBy: report.reviewedById ? usersMap.get(report.reviewedById) || null : null,

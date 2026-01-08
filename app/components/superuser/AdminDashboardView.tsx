@@ -419,43 +419,91 @@ export default function AdminDashboardView() {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-3 mb-6">
+          {/* Stats Cards - styled like UserDashboard */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <button 
               onClick={() => setStatusFilter('ALL')}
-              className={`rounded-xl border p-4 transition-all text-left ${
-                statusFilter === 'ALL' ? 'bg-gray-900 border-gray-900 text-white' : 'bg-white border-gray-200 hover:border-gray-300'
+              className={`rounded-xl sm:rounded-2xl p-4 sm:p-5 transition-all text-left shadow-sm ${
+                statusFilter === 'ALL' 
+                  ? 'bg-linear-to-br from-red-500 to-red-600 text-white shadow-xl shadow-red-500/30' 
+                  : 'bg-white border border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className={`text-2xl font-bold ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-900'}`}>{stats.total}</div>
-              <div className={`text-xs font-medium ${statusFilter === 'ALL' ? 'text-gray-300' : 'text-gray-500'}`}>Total</div>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                  statusFilter === 'ALL' ? 'bg-white/20 backdrop-blur-sm' : 'bg-gray-100'
+                }`}>
+                  <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                {statusFilter === 'ALL' && <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Active</span>}
+              </div>
+              <div className={`text-2xl sm:text-3xl font-bold mb-1 ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-900'}`}>{stats.total}</div>
+              <div className={`font-medium text-xs sm:text-sm ${statusFilter === 'ALL' ? 'text-red-100' : 'text-gray-500'}`}>Total Laporan</div>
             </button>
+            
             <button 
               onClick={() => setStatusFilter('PENDING')}
-              className={`rounded-xl border p-4 transition-all text-left ${
-                statusFilter === 'PENDING' ? 'bg-amber-500 border-amber-500 text-white' : 'bg-amber-50 border-amber-100 hover:border-amber-200'
+              className={`rounded-xl sm:rounded-2xl p-4 sm:p-5 transition-all text-left shadow-sm ${
+                statusFilter === 'PENDING' 
+                  ? 'bg-linear-to-br from-amber-500 to-amber-600 text-white shadow-xl shadow-amber-500/30' 
+                  : 'bg-white border border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className={`text-2xl font-bold ${statusFilter === 'PENDING' ? 'text-white' : 'text-amber-600'}`}>{stats.pending}</div>
-              <div className={`text-xs font-medium ${statusFilter === 'PENDING' ? 'text-amber-100' : 'text-amber-600'}`}>Menunggu</div>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                  statusFilter === 'PENDING' ? 'bg-white/20 backdrop-blur-sm' : 'bg-amber-100'
+                }`}>
+                  <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${statusFilter === 'PENDING' ? 'text-white' : 'text-amber-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className={`text-2xl sm:text-3xl font-bold mb-1 ${statusFilter === 'PENDING' ? 'text-white' : 'text-amber-600'}`}>{stats.pending}</div>
+              <div className={`font-medium text-xs sm:text-sm ${statusFilter === 'PENDING' ? 'text-amber-100' : 'text-gray-500'}`}>Menunggu</div>
             </button>
+            
             <button 
               onClick={() => setStatusFilter('APPROVED')}
-              className={`rounded-xl border p-4 transition-all text-left ${
-                statusFilter === 'APPROVED' ? 'bg-green-500 border-green-500 text-white' : 'bg-green-50 border-green-100 hover:border-green-200'
+              className={`rounded-xl sm:rounded-2xl p-4 sm:p-5 transition-all text-left shadow-sm ${
+                statusFilter === 'APPROVED' 
+                  ? 'bg-linear-to-br from-green-500 to-green-600 text-white shadow-xl shadow-green-500/30' 
+                  : 'bg-white border border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className={`text-2xl font-bold ${statusFilter === 'APPROVED' ? 'text-white' : 'text-green-600'}`}>{stats.approved}</div>
-              <div className={`text-xs font-medium ${statusFilter === 'APPROVED' ? 'text-green-100' : 'text-green-600'}`}>Terverifikasi</div>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                  statusFilter === 'APPROVED' ? 'bg-white/20 backdrop-blur-sm' : 'bg-green-100'
+                }`}>
+                  <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${statusFilter === 'APPROVED' ? 'text-white' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className={`text-2xl sm:text-3xl font-bold mb-1 ${statusFilter === 'APPROVED' ? 'text-white' : 'text-green-600'}`}>{stats.approved}</div>
+              <div className={`font-medium text-xs sm:text-sm ${statusFilter === 'APPROVED' ? 'text-green-100' : 'text-gray-500'}`}>Terverifikasi</div>
             </button>
+            
             <button 
               onClick={() => setStatusFilter('REJECTED')}
-              className={`rounded-xl border p-4 transition-all text-left ${
-                statusFilter === 'REJECTED' ? 'bg-red-500 border-red-500 text-white' : 'bg-red-50 border-red-100 hover:border-red-200'
+              className={`rounded-xl sm:rounded-2xl p-4 sm:p-5 transition-all text-left shadow-sm ${
+                statusFilter === 'REJECTED' 
+                  ? 'bg-linear-to-br from-red-500 to-rose-600 text-white shadow-xl shadow-red-500/30' 
+                  : 'bg-white border border-gray-200 hover:border-gray-300'
               }`}
             >
-              <div className={`text-2xl font-bold ${statusFilter === 'REJECTED' ? 'text-white' : 'text-red-600'}`}>{stats.rejected}</div>
-              <div className={`text-xs font-medium ${statusFilter === 'REJECTED' ? 'text-red-100' : 'text-red-600'}`}>Ditolak</div>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center ${
+                  statusFilter === 'REJECTED' ? 'bg-white/20 backdrop-blur-sm' : 'bg-red-100'
+                }`}>
+                  <svg className={`w-5 h-5 sm:w-6 sm:h-6 ${statusFilter === 'REJECTED' ? 'text-white' : 'text-red-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              </div>
+              <div className={`text-2xl sm:text-3xl font-bold mb-1 ${statusFilter === 'REJECTED' ? 'text-white' : 'text-red-600'}`}>{stats.rejected}</div>
+              <div className={`font-medium text-xs sm:text-sm ${statusFilter === 'REJECTED' ? 'text-red-100' : 'text-gray-500'}`}>Ditolak</div>
             </button>
           </div>
 

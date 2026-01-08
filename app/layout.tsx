@@ -20,6 +20,10 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Geotagging - SATGAS USK",
   description: "Aplikasi berbasis WebGIS untuk mengumpulkan, memetakan, dan memvisualisasikan laporan kondisi infrastruktur dan permukiman terdampak bencana secara berbasis lokasi.",
+  icons: {
+    icon: "/logo-satgas-usk.png",
+    apple: "/logo-satgas-usk.png",
+  },
 };
 
 export default function RootLayout({

@@ -150,12 +150,12 @@ export default function LaporanView() {
     router.push(`/dashboard?lat=${report.lat}&lng=${report.lng}&id=${report.id}`);
   };
 
-  // Stats
+  // Stats (excluding rejected reports since they're not shown)
   const stats = useMemo(() => ({
     total: reports.length,
     pending: reports.filter(r => r.status === "PENDING").length,
     approved: reports.filter(r => r.status === "APPROVED").length,
-    rejected: reports.filter(r => r.status === "REJECTED").length,
+    belumDitangani: reports.filter(r => r.statusTangani === "BELUM_DITANGANI").length,
   }), [reports]);
 
   const getSeverityColor = (severity: string) => {
@@ -216,23 +216,55 @@ export default function LaporanView() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Stats Summary */}
-          <div className="grid grid-cols-4 gap-3 mb-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <div className="text-xs text-gray-500 font-medium">Total Laporan</div>
+          {/* Stats Summary - styled like UserDashboard */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div className="bg-linear-to-br from-red-500 to-red-600 rounded-xl sm:rounded-2xl p-4 sm:p-5 text-white shadow-xl shadow-red-500/30">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center backdrop-blur-sm">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="text-xs font-medium bg-white/20 px-2 py-1 rounded-full backdrop-blur-sm">Live</span>
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold mb-1">{stats.total}</div>
+              <div className="text-red-100 font-medium text-xs sm:text-sm">Total Laporan</div>
             </div>
-            <div className="bg-amber-50 rounded-xl border border-amber-100 p-4">
-              <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
-              <div className="text-xs text-amber-600 font-medium">Menunggu</div>
+
+            <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.pending}</div>
+              <div className="text-gray-500 font-medium text-xs sm:text-sm">Belum Diverifikasi</div>
             </div>
-            <div className="bg-green-50 rounded-xl border border-green-100 p-4">
-              <div className="text-2xl font-bold text-green-600">{stats.approved}</div>
-              <div className="text-xs text-green-600 font-medium">Terverifikasi</div>
+
+            <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-green-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.approved}</div>
+              <div className="text-gray-500 font-medium text-xs sm:text-sm">Terverifikasi</div>
             </div>
-            <div className="bg-red-50 rounded-xl border border-red-100 p-4">
-              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-              <div className="text-xs text-red-600 font-medium">Ditolak</div>
+
+            <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 bg-orange-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{stats.belumDitangani}</div>
+              <div className="text-gray-500 font-medium text-xs sm:text-sm">Belum Ditangani</div>
             </div>
           </div>
 
@@ -383,7 +415,9 @@ export default function LaporanView() {
                                 <p className="font-medium text-gray-900 text-sm truncate max-w-32" title={report.namaObjek}>
                                   {report.namaObjek.length > 20 ? `${report.namaObjek.slice(0, 20)}...` : report.namaObjek}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">{report.jenisKerusakan}</p>
+                                <p className="text-xs text-gray-500 truncate max-w-32" title={report.jenisKerusakan}>
+                                  {report.jenisKerusakan.length > 25 ? `${report.jenisKerusakan.slice(0, 25)}...` : report.jenisKerusakan}
+                                </p>
                               </div>
                             </div>
                           </td>
