@@ -65,9 +65,12 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
     // Log detailed error for debugging
     if (error instanceof Error) {
       console.error('JWT verification failed:', error.message);
+      console.error('Token (first 30 chars):', token.substring(0, 30) + '...');
       // Check if it's an expiration error
       if (error.message.includes('expired')) {
         console.error('Token has expired - user needs to login again');
+      } else if (error.message.includes('signature')) {
+        console.error('Token signature invalid - likely JWT_SECRET mismatch or corrupted token');
       }
     } else {
       console.error('JWT verification failed:', error);
